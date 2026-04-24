@@ -71,33 +71,3 @@ ports:
 
 Do konfiguracji portu mozesz uzyc `.env` na podstawie `.env.example`.
 
-## Co wrzucac do GitHuba
-
-Do repo warto commitowac:
-
-- kod zrodlowy
-- `package.json` i lockfile
-- konfiguracje Dockera
-- dokumentacje
-- przykladowe pliki danych
-
-Nie wrzucaj:
-
-- `node_modules/`
-- buildow i logow
-- archiwow ZIP
-- lokalnych plikow `data/*.json`
-- lokalnych `.env`
-
-## Pierwszy push
-
-Jesli chcesz wystawic to jako nowe repo:
-
-```bash
-git init -b main
-git add .
-git commit -m "Initial commit"
-git remote add origin <URL_REPO>
-git push -u origin main
-```
-
