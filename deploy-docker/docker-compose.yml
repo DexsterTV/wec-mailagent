@@ -1,0 +1,13 @@
+services:
+  wec-mailing-agent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wec-mailing-agent
+    env_file:
+      - .env
+    ports:
+      - "${PORT:-3000}:3000"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

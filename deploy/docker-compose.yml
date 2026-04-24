@@ -1,0 +1,9 @@
+services:
+  wec-mailing-agent:
+    build: .
+    container_name: wec-mailing-agent
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

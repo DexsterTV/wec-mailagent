@@ -1,0 +1,13 @@
+services:
+  wec-mailing:
+    build: .
+    container_name: wec-mailing-agent
+    ports:
+      - "8256:3000"
+    volumes:
+      # Dane (szablony, kontakty, logi, użytkownicy) persystują między restartami
+      - wec_data:/app/data
+    restart: unless-stopped
+
+volumes:
+  wec_data:
