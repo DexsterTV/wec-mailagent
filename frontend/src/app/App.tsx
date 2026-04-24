@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { getStoredTheme, applyTheme } from '../lib/utils/theme'
 import LoginPage from '../pages/LoginPage'
+import GoogleCallbackPage from '../pages/GoogleCallbackPage'
 import AppShell from './AppShell'
 import EditorPage from '../pages/EditorPage'
 import ContactsPage from '../pages/ContactsPage'
@@ -26,6 +27,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/auth/google/callback" element={<GoogleCallbackPage />} />
       <Route
         path="/"
         element={

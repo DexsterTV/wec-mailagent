@@ -8,6 +8,9 @@ export interface User {
   displayName: string
   role: 'admin' | 'user'
   permissions: Permissions
+  email?: string | null
+  picture?: string | null
+  authProviders?: string[]
 }
 
 export interface AuthUser extends User {
@@ -111,10 +114,4 @@ export interface LogEntry {
   details?: string
 }
 
-export interface LoginResponse {
-  token: string
-  username: string
-  role: 'admin' | 'user'
-  displayName: string
-  permissions: Permissions
-}
+export type LoginResponse = AuthUser

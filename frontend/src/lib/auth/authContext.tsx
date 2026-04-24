@@ -7,6 +7,7 @@ interface AuthContextValue {
   user: AuthUser | null
   isLoading: boolean
   login: (username: string, password: string) => Promise<void>
+  loginWithToken: (token: string) => Promise<void>
   logout: () => Promise<void>
   isAdmin: () => boolean
   hasPermission: (key: keyof Permissions) => boolean
@@ -20,6 +21,8 @@ function saveSession(user: AuthUser) {
   sessionStorage.setItem('wec_role', user.role)
   sessionStorage.setItem('wec_display_name', user.displayName)
   sessionStorage.setItem('wec_permissions', JSON.stringify(user.permissions))
+  sessionStorage.setItem('wec_email', user.email ?? '')
+  sessionStorage.setItem('wec_picture', user.picture ?? '')
 }
 
 function clearSession() {
@@ -28,17 +31,21 @@ function clearSession() {
   sessionStorage.removeItem('wec_role')
   sessionStorage.removeItem('wec_display_name')
   sessionStorage.removeItem('wec_permissions')
+  sessionStorage.removeItem('wec_email')
+  sessionStorage.removeItem('wec_picture')
 }
 
 function readSession(): AuthUser | null {
-  const token = sessionStorage.getItem('wec_token')
-  const username = sessionStorage.getItem('wec_user')
-  const role = sessionStorage.getItem('wec_role') as AuthUser['role'] | null
+  const token       = sessionStorage.getItem('wec_token')
+  const username    = sessionStorage.getItem('wec_user')
+  const role        = sessionStorage.getItem('wec_role') as AuthUser['role'] | null
   const displayName = sessionStorage.getItem('wec_display_name')
-  const rawPerms = sessionStorage.getItem('wec_permissions')
+  const rawPerms    = sessionStorage.getItem('wec_permissions')
   if (!token || !username || !role || !displayName) return null
   const permissions: Permissions = rawPerms ? JSON.parse(rawPerms) : {}
-  return { token, username, role, displayName, permissions }
+  const email   = sessionStorage.getItem('wec_email') || null
+  const picture = sessionStorage.getItem('wec_picture') || null
+  return { token, username, role, displayName, permissions, email, picture }
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -62,17 +69,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const data = await authApi.login(username, password)
       const authUser: AuthUser = {
-        token: data.token,
-        username: data.username,
-        role: data.role,
-        displayName: data.displayName,
-        permissions: data.permissions,
+        token:        data.token,
+        username:     data.username,
+        role:         data.role,
+        displayName:  data.displayName,
+        permissions:  data.permissions,
+        email:        data.email ?? null,
+        picture:      data.picture ?? null,
       }
       saveSession(authUser)
       setUser(authUser)
       logsApi.add('LOGIN', `Zalogowano jako: ${data.username} (${data.role})`)
     } catch (err) {
       logsApi.add('LOGIN_FAIL', `Nieudana próba logowania: ${username} — ${err instanceof Error ? err.message : 'błąd'}`)
+      throw err
+    }
+  }, [])
+
+  const loginWithToken = useCallback(async (token: string) => {
+    sessionStorage.setItem('wec_token', token)
+    try {
+      const meData = await authApi.me()
+      const authUser: AuthUser = {
+        token,
+        username:    meData.username,
+        role:        meData.role,
+        displayName: meData.displayName,
+        permissions: meData.permissions,
+        email:       meData.email ?? null,
+        picture:     meData.picture ?? null,
+      }
+      saveSession(authUser)
+      setUser(authUser)
+      logsApi.add('LOGIN', `Zalogowano przez Google jako: ${meData.username} (${meData.role})`)
+    } catch (err) {
+      sessionStorage.removeItem('wec_token')
       throw err
     }
   }, [])
@@ -96,7 +127,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   )
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, isAdmin, hasPermission }}>
+    <AuthContext.Provider value={{ user, isLoading, login, loginWithToken, logout, isAdmin, hasPermission }}>
       {children}
     </AuthContext.Provider>
   )

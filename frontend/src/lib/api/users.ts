@@ -7,6 +7,7 @@ export interface UserPayload {
   password?: string
   role: 'admin' | 'user'
   permissions: Record<string, boolean>
+  email?: string | null
 }
 
 export const usersApi = {

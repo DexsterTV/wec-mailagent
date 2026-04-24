@@ -26,12 +26,14 @@ function UserModal({ user, onClose, onSave }: UserModalProps) {
     const get = (name: string) => (form.elements.namedItem(name) as HTMLInputElement).value
     const password = get('password')
     if (isNew && !password) { alert('Hasło jest wymagane dla nowego użytkownika.'); return }
+    const emailRaw = get('email').trim()
     const data: UserPayload = {
-      username: get('username'),
+      username:    get('username'),
       displayName: get('displayName'),
+      email:       emailRaw || null,
       role,
       permissions: {
-        canEditTemplates: (form.elements.namedItem('canEditTemplates') as HTMLInputElement).checked,
+        canEditTemplates:  (form.elements.namedItem('canEditTemplates')  as HTMLInputElement).checked,
         canManageContacts: (form.elements.namedItem('canManageContacts') as HTMLInputElement).checked,
       },
       ...(password ? { password } : {}),
@@ -59,6 +61,21 @@ function UserModal({ user, onClose, onSave }: UserModalProps) {
           <div className="form-group">
             <label>Imię i nazwisko (wyświetlane)</label>
             <input type="text" name="displayName" defaultValue={user?.displayName ?? ''} required />
+          </div>
+          <div className="form-group">
+            <label>
+              Adres e-mail
+              <span style={{ fontSize: 11, color: 'var(--text-400)', marginLeft: 6 }}>
+                (wymagany do logowania Google)
+              </span>
+            </label>
+            <input
+              type="email"
+              name="email"
+              defaultValue={user?.email ?? ''}
+              placeholder="jan@firma.pl"
+              autoComplete="email"
+            />
           </div>
           <div className="form-group">
             <label>{isNew ? 'Hasło' : 'Nowe hasło (zostaw puste = bez zmian)'}</label>
@@ -142,25 +159,27 @@ export default function UsersPage() {
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
             {users.map((u) => {
-              const role = ROLE_COLORS[u.role] ?? ROLE_COLORS.user
+              const role   = ROLE_COLORS[u.role] ?? ROLE_COLORS.user
               const isSelf = u.username === currentUser?.username
-              const perms = u.role === 'admin'
+              const perms  = u.role === 'admin'
                 ? ['Pełne uprawnienia']
                 : [
-                    u.permissions?.canEditTemplates !== false && 'Edycja szablonów',
+                    u.permissions?.canEditTemplates  !== false && 'Edycja szablonów',
                     u.permissions?.canManageContacts !== false && 'Kontakty',
                   ].filter(Boolean) as string[]
 
+              const hasGoogle = u.authProviders?.includes('google')
+
               return (
                 <div key={u.username} style={{
-                  background: 'var(--panel-bg)',
-                  border: `1px solid ${isSelf ? 'var(--primary)' : 'var(--panel-border)'}`,
+                  background:   'var(--panel-bg)',
+                  border:       `1px solid ${isSelf ? 'var(--primary)' : 'var(--panel-border)'}`,
                   borderRadius: 'var(--radius-lg)',
-                  padding: 20,
-                  boxShadow: isSelf ? '0 0 0 3px var(--primary-ring)' : 'var(--shadow-xs)',
-                  display: 'flex',
+                  padding:      20,
+                  boxShadow:    isSelf ? '0 0 0 3px var(--primary-ring)' : 'var(--shadow-xs)',
+                  display:      'flex',
                   flexDirection: 'column',
-                  gap: 14,
+                  gap:          14,
                 }}>
                   {/* Header */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -171,7 +190,10 @@ export default function UsersPage() {
                       fontSize: 15, fontWeight: 700, color: role.color,
                       flexShrink: 0,
                     }}>
-                      {getInitials(u.displayName)}
+                      {u.picture
+                        ? <img src={u.picture} alt="" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
+                        : getInitials(u.displayName)
+                      }
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-900)', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -185,6 +207,14 @@ export default function UsersPage() {
                       <div style={{ fontSize: 12, color: 'var(--text-400)', fontFamily: 'Consolas, monospace' }}>
                         @{u.username}
                       </div>
+                      {u.email && (
+                        <div style={{ fontSize: 11, color: 'var(--text-400)', marginTop: 2 }}>
+                          {u.email}
+                          {hasGoogle && (
+                            <span style={{ marginLeft: 6, fontSize: 10, color: '#4285F4', fontWeight: 600 }}>G</span>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <span style={{
                       fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 99,
@@ -222,8 +252,8 @@ export default function UsersPage() {
                       style={{
                         flex: 1,
                         background: isSelf ? 'var(--workspace-bg)' : 'var(--danger-light)',
-                        color: isSelf ? 'var(--text-400)' : 'var(--danger)',
-                        border: 'none',
+                        color:      isSelf ? 'var(--text-400)' : 'var(--danger)',
+                        border:     'none',
                       }}
                       onClick={() => handleDelete(u)}
                       disabled={isSelf}
