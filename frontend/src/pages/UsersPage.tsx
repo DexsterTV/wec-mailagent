@@ -27,15 +27,21 @@ function UserModal({ user, onClose, onSave }: UserModalProps) {
     const password = get('password')
     if (isNew && !password) { alert('Hasło jest wymagane dla nowego użytkownika.'); return }
     const emailRaw = get('email').trim()
+    const canEditTemplatesEl  = form.elements.namedItem('canEditTemplates')  as HTMLInputElement | null
+    const canManageContactsEl = form.elements.namedItem('canManageContacts') as HTMLInputElement | null
+    const permissions: Record<string, boolean> = role === 'admin'
+      ? {}
+      : {
+          canEditTemplates:  canEditTemplatesEl?.checked  ?? true,
+          canManageContacts: canManageContactsEl?.checked ?? true,
+        }
+
     const data: UserPayload = {
       username:    get('username'),
       displayName: get('displayName'),
       email:       emailRaw || null,
       role,
-      permissions: {
-        canEditTemplates:  (form.elements.namedItem('canEditTemplates')  as HTMLInputElement).checked,
-        canManageContacts: (form.elements.namedItem('canManageContacts') as HTMLInputElement).checked,
-      },
+      permissions,
       ...(password ? { password } : {}),
     }
     setSaving(true)
