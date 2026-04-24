@@ -1,5 +1,7 @@
 node_modules/
+frontend/node_modules/
 data/
 *.log
 .git/
 .gitignore
+dist-frontend/
