@@ -3,7 +3,8 @@ services:
     build: .
     container_name: wec-mailing-agent
     ports:
-      - "8256:3000"
+      - "0.0.0.0:8004:3000"
+    env_file: .env
     volumes:
       # Dane (szablony, kontakty, logi, użytkownicy) persystują między restartami
       - wec_data:/app/data

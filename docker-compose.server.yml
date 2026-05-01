@@ -3,7 +3,8 @@ services:
     image: ghcr.io/dexstertv/wec-mailagent:latest
     container_name: wec-mailing-agent
     ports:
-      - "8256:3000"
+      - "0.0.0.0:8004:3000"
+    env_file: .env
     volumes:
       - wec_data:/app/data
     restart: unless-stopped
