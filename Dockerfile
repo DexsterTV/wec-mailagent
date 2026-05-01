@@ -26,7 +26,7 @@ COPY --from=backend-deps /app/node_modules ./node_modules
 COPY package*.json ./
 COPY server.js ./
 COPY routes ./routes
-COPY data ./data
+RUN mkdir -p /app/data
 COPY .env.example ./.env.example
 COPY --from=frontend-builder /app/dist-frontend ./dist-frontend
 
