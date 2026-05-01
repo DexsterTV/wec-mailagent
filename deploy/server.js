@@ -34,7 +34,7 @@ app.use('/api/settings', makeSettingsRouter(middleware))
 const reactDist = path.join(__dirname, 'dist-frontend')
 
 if (!fs.existsSync(reactDist)) {
-  throw new Error('Missing dist-frontend. Ship the built frontend with this runtime package.')
+  throw new Error('Missing dist-frontend. Run `npm run build` before starting the server.')
 }
 
 app.use(express.static(reactDist))

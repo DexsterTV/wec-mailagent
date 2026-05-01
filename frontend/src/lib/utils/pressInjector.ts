@@ -112,6 +112,33 @@ function equalizeBoxes(
 }
 
 /**
+ * Sets the href of the element matched by selector to the resolved S3 docx URL.
+ * Must be called AFTER renderTemplate() so selectors work correctly.
+ */
+export function injectDocxButton(html: string, selector: string | undefined, docxUrl: string): string {
+  if (!selector || !docxUrl) return html
+
+  const isFullDoc = /<html[\s>]/i.test(html)
+  const doc = new DOMParser().parseFromString(
+    isFullDoc ? html : `<!DOCTYPE html><html><body>${html}</body></html>`,
+    'text/html',
+  )
+
+  let el: Element | null
+  try {
+    el = doc.querySelector(selector)
+  } catch {
+    return html
+  }
+  if (!el) return html
+
+  const anchor = (el.tagName === 'A' ? el : el.closest('a') ?? el.querySelector('a')) as HTMLAnchorElement | null
+  if (anchor) anchor.href = docxUrl
+
+  return isFullDoc ? doc.documentElement.outerHTML : doc.body.innerHTML
+}
+
+/**
  * Injects Prowly press-release data into the rendered HTML using the
  * pressMappings CSS selectors. Returns the modified HTML string.
  *

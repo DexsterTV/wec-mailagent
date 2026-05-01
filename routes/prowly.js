@@ -170,10 +170,87 @@ async function resolveImages(items) {
   items.forEach((item) => { delete item._needsFetch })
 }
 
+// ─── Prowly docx resolver ────────────────────────────────────────────────────
+
+function postEmptyForJson(storyId) {
+  return new Promise((resolve, reject) => {
+    const req = https.request(
+      {
+        method: 'POST',
+        hostname: 'media.wec24.pl',
+        path: `/${storyId}//docx`,
+        headers: {
+          'Content-Length': '0',
+          'User-Agent': 'Mozilla/5.0 (compatible; WECMailingAgent/1.0)',
+          Accept: 'application/json',
+        },
+        timeout: 10000,
+      },
+      (res) => {
+        if (res.statusCode < 200 || res.statusCode >= 400) {
+          res.resume()
+          return reject(new Error(`HTTP ${res.statusCode}`))
+        }
+        res.setEncoding('utf8')
+        let data = ''
+        res.on('data', (chunk) => { data += chunk })
+        res.on('end', () => {
+          try { resolve(JSON.parse(data)) } catch { reject(new Error('Nieprawidłowa odpowiedź JSON od Prowly')) }
+        })
+      },
+    )
+    req.on('error', reject)
+    req.on('timeout', () => { req.destroy(); reject(new Error('Timeout połączenia')) })
+    req.end()
+  })
+}
+
+function extractDocxUrl(data) {
+  for (const key of ['url', 'docx_url', 'download_url', 'link', 'href', 'file_url']) {
+    if (typeof data[key] === 'string' && data[key].startsWith('http')) return data[key]
+  }
+  function deepSearch(obj) {
+    if (!obj || typeof obj !== 'object') return null
+    for (const val of Object.values(obj)) {
+      if (typeof val === 'string' && val.includes('.docx')) return val
+      const found = deepSearch(val)
+      if (found) return found
+    }
+    return null
+  }
+  return deepSearch(data)
+}
+
 // ─── Router ──────────────────────────────────────────────────────────────────
 
 function makeProwlyRouter(middleware) {
   const router = require('express').Router()
+
+  // POST /api/prowly/resolve-docx — resolves press URL to a .docx S3 link
+  router.post('/resolve-docx', middleware.requireAuth, async (req, res) => {
+    const { pressUrl } = req.body
+    if (!pressUrl || typeof pressUrl !== 'string') {
+      return res.status(400).json({ error: 'Brak lub nieprawidłowy pressUrl' })
+    }
+    const match = pressUrl.match(/media\.wec24\.pl\/(\d+)/)
+    if (!match) {
+      return res.status(400).json({ error: 'Nie można wyciągnąć ID pressa. Upewnij się, że URL pochodzi z domeny media.wec24.pl.' })
+    }
+    const storyId = match[1]
+    try {
+      const data = await postEmptyForJson(storyId)
+      const docxUrl = extractDocxUrl(data)
+      if (!docxUrl) {
+        return res.status(422).json({ error: 'Prowly nie zwróciło URL do pliku .docx' })
+      }
+      addServerLog(req.user.username, 'PRESS_DOCX_RESOLVE', `Rozwiązano docx dla story ${storyId}`)
+      res.json({ docxUrl })
+    } catch (err) {
+      console.error('[Press docx]', err.message)
+      addServerLog(req.user.username, 'PRESS_DOCX_ERROR', `Błąd resolve docx story ${storyId}: ${err.message}`)
+      res.status(500).json({ error: `Błąd pobierania linku .docx: ${err.message}` })
+    }
+  })
 
   // GET /api/prowly/posts — reads RSS URL from system settings
   router.get('/posts', middleware.requireAuth, async (req, res) => {

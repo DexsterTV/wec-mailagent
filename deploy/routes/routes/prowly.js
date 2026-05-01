@@ -84,11 +84,11 @@ function firstImgSrc(html) {
 
 // ─── RSS 2.0 ──────────────────────────────────────────────────────────────────
 
-function parseRssItems(xml, limit = 5) {
+function parseRssItems(xml) {
   const items = []
   const re    = /<item[^>]*>([\s\S]*?)<\/item>/g
   let m
-  while ((m = re.exec(xml)) !== null && (limit === 0 || items.length < limit)) {
+  while ((m = re.exec(xml)) !== null && items.length < 5) {
     const b = m[1]
     const title   = tagContent(b, 'title')   || '(bez tytułu)'
     const link    = tagContent(b, 'link')    || tagContent(b, 'guid') || ''
@@ -110,11 +110,11 @@ function parseRssItems(xml, limit = 5) {
 
 // ─── Atom 1.0 ─────────────────────────────────────────────────────────────────
 
-function parseAtomItems(xml, limit = 5) {
+function parseAtomItems(xml) {
   const items = []
   const re    = /<entry[^>]*>([\s\S]*?)<\/entry>/g
   let m
-  while ((m = re.exec(xml)) !== null && (limit === 0 || items.length < limit)) {
+  while ((m = re.exec(xml)) !== null && items.length < 5) {
     const b = m[1]
     const title   = tagContent(b, 'title') || '(bez tytułu)'
     // Atom: <link href="..." rel="alternate"> — prefer rel=alternate or first link
@@ -136,9 +136,10 @@ function parseAtomItems(xml, limit = 5) {
   return items
 }
 
-function parseItems(xml, limit = 5) {
-  if (/<feed[\s>]/i.test(xml)) return parseAtomItems(xml, limit)
-  return parseRssItems(xml, limit)
+function parseItems(xml) {
+  // Atom feeds have <feed> root; RSS feeds have <rss> or <channel>
+  if (/<feed[\s>]/i.test(xml)) return parseAtomItems(xml)
+  return parseRssItems(xml)
 }
 
 // ─── og:image scraper ────────────────────────────────────────────────────────
@@ -204,108 +205,7 @@ function makeProwlyRouter(middleware) {
     }
   })
 
-  // GET /api/prowly/search?q=... — searches all RSS items by title (no image resolution)
-  router.get('/search', middleware.requireAuth, async (req, res) => {
-    const q = String(req.query.q ?? '').trim().toLowerCase()
-    if (q.length < 2) return res.json([])
-
-    const settings = readData('settings.json', {})
-    const rssUrl   = settings.prowlyRssUrl
-
-    if (!rssUrl || !rssUrl.trim()) {
-      return res.status(400).json({ error: 'URL RSS newsroomu nie jest skonfigurowany.' })
-    }
-    if (!validateUrl(rssUrl)) {
-      return res.status(400).json({ error: 'Skonfigurowany URL RSS jest nieprawidłowy.' })
-    }
-
-    try {
-      const xml   = await fetchText(rssUrl)
-      const all   = parseItems(xml, 0)
-      const hits  = all.filter((item) => item.title.toLowerCase().includes(q)).slice(0, 12)
-      hits.forEach((item) => { delete item._needsFetch })
-      res.json(hits)
-    } catch (err) {
-      res.status(500).json({ error: `Błąd wyszukiwania: ${err.message}` })
-    }
-  })
-
-  // POST /api/prowly/resolve-docx — fetches .docx URL for a press release
-  router.post('/resolve-docx', middleware.requireAuth, async (req, res) => {
-    const { pressUrl } = req.body ?? {}
-    if (!pressUrl || typeof pressUrl !== 'string') {
-      return res.status(400).json({ error: 'Wymagane pole: pressUrl' })
-    }
-
-    const m = pressUrl.match(/media\.wec24\.pl\/(\d+)/)
-    if (!m) {
-      return res.status(400).json({ error: 'Nie udało się znaleźć ID prasówki w podanym URL.' })
-    }
-    const storyId = m[1]
-
-    try {
-      const docxData = await postEmptyForJson(storyId)
-      const docxUrl  = extractDocxUrl(docxData)
-      if (!docxUrl) return res.status(422).json({ error: 'Nie znaleziono linku .docx w odpowiedzi Prowly.' })
-      res.json({ docxUrl })
-    } catch (err) {
-      res.status(500).json({ error: `Błąd pobierania .docx: ${err.message}` })
-    }
-  })
-
   return router
-}
-
-// ─── Prowly docx helpers ─────────────────────────────────────────────────────
-
-function postEmptyForJson(storyId) {
-  return new Promise((resolve, reject) => {
-    const req = https.request(
-      {
-        method: 'POST',
-        hostname: 'media.wec24.pl',
-        path: `/${storyId}//docx`,
-        headers: {
-          'Content-Length': '0',
-          'User-Agent': 'Mozilla/5.0 (compatible; WECMailingAgent/1.0)',
-          Accept: 'application/json',
-        },
-        timeout: 10000,
-      },
-      (res) => {
-        let data = ''
-        res.setEncoding('utf8')
-        res.on('data', (chunk) => { data += chunk })
-        res.on('end', () => {
-          try { resolve(JSON.parse(data)) } catch { resolve(null) }
-        })
-      },
-    )
-    req.on('error', reject)
-    req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')) })
-    req.end()
-  })
-}
-
-function extractDocxUrl(data) {
-  if (!data) return null
-  const candidates = ['url', 'docx_url', 'download_url', 'file_url', 'asset_url', 'attachment_url']
-  for (const key of candidates) {
-    if (typeof data[key] === 'string' && data[key].includes('.docx')) return data[key]
-  }
-  return deepFindDocx(data)
-}
-
-function deepFindDocx(obj, depth = 0) {
-  if (depth > 5 || !obj || typeof obj !== 'object') return null
-  for (const val of Object.values(obj)) {
-    if (typeof val === 'string' && val.includes('.docx')) return val
-    if (typeof val === 'object') {
-      const found = deepFindDocx(val, depth + 1)
-      if (found) return found
-    }
-  }
-  return null
 }
 
 module.exports = { makeProwlyRouter }

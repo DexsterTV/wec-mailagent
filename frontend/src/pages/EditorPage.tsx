@@ -8,7 +8,8 @@ import { extractColors } from '../lib/utils/colorExtractor'
 import { replaceColorInHtml } from '../lib/utils/colorReplacer'
 import { drafts } from '../lib/utils/drafts'
 import { logsApi } from '../lib/api/logs'
-import { injectPressData } from '../lib/utils/pressInjector'
+import { injectPressData, injectDocxButton } from '../lib/utils/pressInjector'
+import { usePressDocx } from '../features/press/usePressDocx'
 import ProwlyPicker from '../features/press/ProwlyPicker'
 import type { Template, TemplateField, Contact, DetectedColor, ProwlyPost } from '../types'
 
@@ -182,6 +183,9 @@ export default function EditorPage() {
   const [detectedColors, setDetectedColors] = useState<DetectedColor[]>([])
   const [colorOverrides, setColorOverrides] = useState<Record<string, string>>({})
   const [selectedPosts, setSelectedPosts] = useState<[ProwlyPost | null, ProwlyPost | null]>([null, null])
+  const [pressUrl, setPressUrl] = useState<string>('')
+  const [copied, setCopied] = useState(false)
+  const { docxUrl, resolving: docxResolving } = usePressDocx(pressUrl)
   const [formOpen, setFormOpen] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(true)
   const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -223,6 +227,7 @@ export default function EditorPage() {
     setDetectedColors(extractColors(currentTemplate.html))
     setColorOverrides({})
     setSelectedPosts([null, null])
+    setPressUrl('')
   }, [currentTemplate?.id])
 
   // Apply color overrides to base HTML before rendering
@@ -250,8 +255,10 @@ export default function EditorPage() {
         rawValues[f.id] = contact ? buildContactHtml(contact) : ''
       }
     })
+    rawValues.link_docx = docxUrl
     const rendered = decorateImageTags(renderTemplate(baseHtml, renderableValues, rawValues))
-    return injectPressData(rendered, currentTemplate.pressMappings, selectedPosts)
+    const withPress = injectPressData(rendered, currentTemplate.pressMappings, selectedPosts)
+    return injectDocxButton(withPress, currentTemplate.docxButtonSelector, docxUrl)
   }
 
   // Update iframe preview
@@ -266,7 +273,7 @@ export default function EditorPage() {
       doc.close()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [values, currentTemplate, colorOverrides, selectedPosts])
+  }, [values, currentTemplate, colorOverrides, selectedPosts, docxUrl])
 
   function scheduleAutosave(newValues: Record<string, string>) {
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current)
@@ -331,6 +338,8 @@ export default function EditorPage() {
     const html = getFinalHtml()
     await navigator.clipboard.writeText(html)
     logsApi.add('EXPORT_COPY', `Skopiowano HTML: ${currentTemplate?.name}`)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
   }
 
   function downloadHTML() {
@@ -404,8 +413,17 @@ export default function EditorPage() {
               <path d="M3 3v5h5" />
             </svg>
           </button>
-          <button className="btn btn-secondary btn-sm" onClick={copyHTML}>
-            Skopiuj HTML
+          <button
+            className="btn btn-sm"
+            onClick={copyHTML}
+            style={{
+              background: copied ? '#dcfce7' : undefined,
+              borderColor: copied ? '#86efac' : undefined,
+              color: copied ? '#16a34a' : undefined,
+              transition: 'background 0.2s, border-color 0.2s, color 0.2s',
+            }}
+          >
+            {copied ? '✓ Skopiowano!' : 'Skopiuj HTML'}
           </button>
           <button className="btn btn-primary btn-sm" onClick={downloadHTML}>
             Pobierz HTML
@@ -461,6 +479,52 @@ export default function EditorPage() {
                     </div>
                   </details>
                 )}
+                {currentTemplate.docxButtonSelector && (
+                  <details className="form-section" style={{ marginTop: 8 }}>
+                    <summary className="form-section-header">
+                      <span className="form-section-title">
+                        Pobieranie pliku .docx
+                        {docxUrl && (
+                          <span style={{ marginLeft: 8, fontSize: 10, background: '#f59e0b', color: '#fff', borderRadius: 8, padding: '1px 6px', fontWeight: 600 }}>
+                            ✓
+                          </span>
+                        )}
+                      </span>
+                      <svg className="form-section-chevron" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none">
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </summary>
+                    <div className="form-section-body">
+                      <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 4 }}>
+                        Link do informacji prasowej (Prowly)
+                      </label>
+                      <input
+                        type="url"
+                        placeholder="https://media.wec24.pl/123456-tytul-artykulu"
+                        value={pressUrl}
+                        onChange={(e) => setPressUrl(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '5px 8px',
+                          fontSize: '0.8rem',
+                          border: '1px solid var(--panel-border)',
+                          borderRadius: 5,
+                          background: 'var(--bg-0)',
+                          color: 'var(--text-900)',
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                      {pressUrl.trim() && (
+                        <div style={{ marginTop: 5, fontSize: '0.75rem' }}>
+                          {docxResolving && <span style={{ color: 'var(--text-muted)' }}>Pobieranie linku .docx…</span>}
+                          {!docxResolving && docxUrl && <span style={{ color: '#16a34a' }}>✓ Link .docx gotowy — button w szablonie zaktualizowany</span>}
+                          {!docxResolving && !docxUrl && <span style={{ color: '#ef4444' }}>Nie udało się pobrać linku .docx</span>}
+                        </div>
+                      )}
+                    </div>
+                  </details>
+                )}
+
                 <details className="form-section" style={{ marginTop: 8 }}>
                   <summary className="form-section-header">
                     <span className="form-section-title">

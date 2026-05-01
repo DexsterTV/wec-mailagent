@@ -7,13 +7,14 @@ import { mergeTemplateMetadata } from '../lib/utils/templateEditor'
 import { DEFAULT_TEMPLATES } from '../lib/utils/defaultTemplates'
 import FieldEditor from '../features/templates/FieldEditor'
 import PressMappingPanel from '../features/templates/PressMappingPanel'
+import DocxButtonPanel from '../features/templates/DocxButtonPanel'
 import type { Template, TemplateField, PressMapEntry } from '../types'
 
 function emptyField(): TemplateField {
   return { id: '', label: '', type: 'text', default: '', section: 'Ogólne' }
 }
 
-type EditorTab = 'content' | 'mapping'
+type EditorTab = 'content' | 'mapping' | 'docx'
 
 const FIELD_SECTION_ORDER = ['Nagłówek', 'Treść', 'Materiały prasowe', 'Opcje', 'Stopka', 'Ogólne']
 
@@ -60,6 +61,7 @@ function EditorPanel({ template, onSave, onCancel }: EditorPanelProps) {
   const [html, setHtml] = useState(template?.html ?? '')
   const [fields, setFields] = useState<TemplateField[]>(template?.fields ?? [])
   const [pressMappings, setPressMappings] = useState<PressMapEntry[]>(template?.pressMappings ?? [])
+  const [docxButtonSelector, setDocxButtonSelector] = useState<string>(template?.docxButtonSelector ?? '')
   const [activeTab, setActiveTab] = useState<EditorTab>('content')
   const [saving, setSaving] = useState(false)
   const [savedMsg, setSavedMsg] = useState('')
@@ -151,6 +153,7 @@ function EditorPanel({ template, onSave, onCancel }: EditorPanelProps) {
         fields: validFields,
         html,
         pressMappings: pressMappings.length > 0 ? pressMappings : undefined,
+        docxButtonSelector: docxButtonSelector.trim() || undefined,
       })
       setSavedMsg('Zapisano!')
       setTimeout(() => setSavedMsg(''), 3000)
@@ -196,10 +199,11 @@ function EditorPanel({ template, onSave, onCancel }: EditorPanelProps) {
           flexShrink: 0,
         }}
       >
-        {(['content', 'mapping'] as EditorTab[]).map((tab) => {
+        {(['content', 'mapping', 'docx'] as EditorTab[]).map((tab) => {
           const labels: Record<EditorTab, string> = {
             content: 'Treść',
             mapping: 'Mapowanie informacji prasowych',
+            docx: 'Przycisk pobierania .docx',
           }
 
           return (
@@ -222,17 +226,13 @@ function EditorPanel({ template, onSave, onCancel }: EditorPanelProps) {
             >
               {labels[tab]}
               {tab === 'mapping' && pressMappings.length > 0 && (
-                <span
-                  style={{
-                    marginLeft: 6,
-                    fontSize: 10,
-                    background: '#10b981',
-                    color: '#fff',
-                    borderRadius: 8,
-                    padding: '1px 5px',
-                  }}
-                >
+                <span style={{ marginLeft: 6, fontSize: 10, background: '#10b981', color: '#fff', borderRadius: 8, padding: '1px 5px' }}>
                   {pressMappings.length}
+                </span>
+              )}
+              {tab === 'docx' && docxButtonSelector && (
+                <span style={{ marginLeft: 6, fontSize: 10, background: '#f59e0b', color: '#fff', borderRadius: 8, padding: '1px 5px' }}>
+                  ✓
                 </span>
               )}
             </button>
@@ -353,6 +353,15 @@ function EditorPanel({ template, onSave, onCancel }: EditorPanelProps) {
             fields={fields}
             pressMappings={pressMappings}
             onChange={setPressMappings}
+          />
+        )}
+
+        {activeTab === 'docx' && (
+          <DocxButtonPanel
+            html={html}
+            fields={fields}
+            selector={docxButtonSelector}
+            onChange={setDocxButtonSelector}
           />
         )}
       </div>

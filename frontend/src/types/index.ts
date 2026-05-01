@@ -70,6 +70,7 @@ export interface Template {
   fields: TemplateField[]
   html: string
   pressMappings?: PressMapEntry[]
+  docxButtonSelector?: string
   createdBy?: string
   createdAt?: string
 }
