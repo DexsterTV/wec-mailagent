@@ -145,6 +145,7 @@ function ColorPanel({ colors, overrides, onOverride }: ColorPanelProps) {
                 {overrides[color.hex] && (
                   <button
                     title="Przywróć oryginalny kolor"
+                    aria-label="Przywróć oryginalny kolor"
                     onClick={() => {
                       onOverride(color.hex, color.hex)
                       setHexInputs((p) => ({ ...p, [color.hex]: color.hex }))
@@ -465,7 +466,7 @@ export default function EditorPage() {
                       <span className="form-section-title">
                         Kolory motywu
                         {overrideCount > 0 && (
-                          <span style={{ marginLeft: 8, fontSize: 10, background: 'var(--accent)', color: '#fff', borderRadius: 8, padding: '1px 6px', fontWeight: 600 }}>
+                          <span style={{ marginLeft: 8, fontSize: 10, background: 'var(--primary)', color: '#fff', borderRadius: 8, padding: '1px 6px', fontWeight: 600 }}>
                             {overrideCount} zm.
                           </span>
                         )}
@@ -530,7 +531,7 @@ export default function EditorPage() {
                     <span className="form-section-title">
                       Informacje prasowe (Prowly)
                       {(selectedPosts[0] || selectedPosts[1]) && (
-                        <span style={{ marginLeft: 8, fontSize: 10, background: 'var(--accent)', color: '#fff', borderRadius: 8, padding: '1px 6px', fontWeight: 600 }}>
+                        <span style={{ marginLeft: 8, fontSize: 10, background: 'var(--primary)', color: '#fff', borderRadius: 8, padding: '1px 6px', fontWeight: 600 }}>
                           {[selectedPosts[0], selectedPosts[1]].filter(Boolean).length} wyb.
                         </span>
                       )}

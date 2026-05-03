@@ -82,6 +82,8 @@ function SearchIcon() {
 function Spinner() {
   return (
     <svg
+      role="status"
+      aria-label="Ładowanie"
       width="14" height="14" viewBox="0 0 14 14" fill="none"
       style={{ flexShrink: 0, animation: 'spin 0.7s linear infinite' }}
     >
@@ -191,7 +193,8 @@ export default function ProwlyPicker({ pressMappings, onSelect }: ProwlyPickerPr
               {post && (
                 <button
                   onClick={() => deselect(i)}
-                  title="Usuń"
+                  title="Usuń wybór"
+                  aria-label={`Usuń wybór IP ${i + 1}`}
                   style={{
                     flexShrink: 0, width: 20, height: 20, borderRadius: '50%',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -275,6 +278,7 @@ export default function ProwlyPicker({ pressMappings, onSelect }: ProwlyPickerPr
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
+              aria-label="Wyczyść wyszukiwanie"
               style={{
                 position: 'absolute', right: 8,
                 background: 'none', border: 'none', cursor: 'pointer',
@@ -342,7 +346,6 @@ export default function ProwlyPicker({ pressMappings, onSelect }: ProwlyPickerPr
                       opacity: isDisabled ? 0.38 : 1,
                       userSelect: 'none',
                       transition: 'border-color 0.15s, background 0.15s, opacity 0.15s',
-                      outline: 'none',
                     }}
                   >
                     {/* Slot indicator */}

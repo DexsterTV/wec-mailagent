@@ -138,6 +138,7 @@ function FieldRow({
           name={field.id}
           value={value}
           readOnly={!!field.locked}
+          aria-readonly={!!field.locked || undefined}
           style={field.locked ? { backgroundColor: 'rgba(0,0,0,0.04)', cursor: 'not-allowed' } : undefined}
           onChange={(e) => onChange(field.id, e.target.value)}
         />
@@ -181,7 +182,7 @@ function FieldRow({
           disabled={!!field.locked}
           onChange={(e) => onContactSelect(e.target.value, field)}
         >
-          <option value="">-- Brak stopki --</option>
+          <option value="">-- Brak kontaktu --</option>
           {contacts.map((c) => (
             <option key={c.id} value={c.id}>
               {c.name} — {c.position || ''}
