@@ -408,7 +408,7 @@ export default function EditorPage() {
           </div>
         </div>
         <div className="topbar-right">
-          <button className="btn btn-icon btn-sm" title="Resetuj formularz" onClick={resetDraft}>
+          <button className="btn btn-icon btn-sm" title="Resetuj formularz" aria-label="Resetuj formularz" onClick={resetDraft}>
             <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none">
               <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
               <path d="M3 3v5h5" />
@@ -496,10 +496,11 @@ export default function EditorPage() {
                       </svg>
                     </summary>
                     <div className="form-section-body">
-                      <label style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 4 }}>
+                      <label htmlFor="docx-press-url" style={{ display: 'block', fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 4 }}>
                         Link do informacji prasowej (Prowly)
                       </label>
                       <input
+                        id="docx-press-url"
                         type="url"
                         placeholder="https://media.wec24.pl/123456-tytul-artykulu"
                         value={pressUrl}

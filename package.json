@@ -1,12 +1,12 @@
 {
   "name": "wec-mailing-agent",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "WEC Mailing Agent — narzędzie do generowania mailingu PR",
-  "main": "server.js",
+  "main": "deploy/server.js",
   "scripts": {
     "build": "npm --prefix frontend run build",
-    "start": "node server.js",
-    "dev": "node --watch server.js"
+    "start": "node deploy/server.js",
+    "dev": "node --watch deploy/server.js"
   },
   "dependencies": {
     "dotenv": "^17.4.2",

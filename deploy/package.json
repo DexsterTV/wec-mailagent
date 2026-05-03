@@ -1,6 +1,6 @@
 {
   "name": "wec-mailing-agent",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "WEC Mailing Agent — narzędzie do generowania mailingu PR",
   "main": "server.js",
   "scripts": {

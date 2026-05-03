@@ -216,6 +216,7 @@ export default function PressMappingPanel({ html, fields, pressMappings, onChang
                   <button
                     key={inst}
                     type="button"
+                    aria-pressed={dialogInstance === inst}
                     onClick={() => setDialogInstance(inst)}
                     style={{
                       flex: 1, padding: '5px 0', border: 'none', cursor: 'pointer',
@@ -309,7 +310,8 @@ export default function PressMappingPanel({ html, fields, pressMappings, onChang
                           className="btn btn-sm"
                           style={{ padding: '1px 5px', fontSize: 11, flexShrink: 0 }}
                           onClick={() => removeMapping(m.id)}
-                          title="Usuń"
+                          title="Usuń mapowanie"
+                          aria-label={`Usuń mapowanie: ${m.label}`}
                         >
                           ✕
                         </button>

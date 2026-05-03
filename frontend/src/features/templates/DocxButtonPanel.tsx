@@ -132,6 +132,7 @@ export default function DocxButtonPanel({ html, fields, selector, onChange }: Do
               style={{ padding: '3px 7px', flexShrink: 0 }}
               onClick={() => onChange('')}
               title="Usuń selektor"
+              aria-label="Usuń selektor przycisku .docx"
             >
               ✕
             </button>

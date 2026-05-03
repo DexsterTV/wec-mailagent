@@ -6,6 +6,25 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.2.2',
+    date: '2026-05-03',
+    sections: [
+      {
+        label: 'Poprawki i ulepszenia',
+        items: [
+          'Pełny audyt dostępności WCAG — aria-label na wszystkich przyciskach ikon, htmlFor/id na polach formularzy, useId() dla unikalnych ID w modalach',
+          'Naprawiono brak focus ringu na polu wyszukiwania kontaktów',
+          'Prawidłowy opis alternatywny (alt) dla awatarów użytkowników z Google',
+          'Dodano color-scheme: dark — natywne kontrolki (select, scrollbar) automatycznie dostosowują się do ciemnego motywu',
+          'touch-action: manipulation na przyciskach i elementach nawigacji — eliminacja 300ms opóźnienia na urządzeniach dotykowych',
+          'Naprawiono overscroll-behavior: contain na zawartości modala — przewijanie nie przenika do strony',
+          'Precyzyjne właściwości transition (zamiast catch-all) — lepsze zachowanie CSS na animacjach',
+          'Naprawiono skrypt startowy npm start po konsolidacji serwera do deploy/',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.2.1',
     date: '2026-04-28',
     sections: [

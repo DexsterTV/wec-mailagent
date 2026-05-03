@@ -4,7 +4,7 @@ import { useAuth } from '../lib/auth'
 import { applyTheme, getStoredTheme } from '../lib/utils/theme'
 import { CHANGELOG } from '../data/changelog'
 
-const APP_VERSION = '0.2.1'
+const APP_VERSION = '0.2.2'
 
 const LOGO_URL =
   'https://prowly-prod.s3.eu-west-1.amazonaws.com/uploads/1230/assets/826775/-05f2bd38f27c35001ab1be34eaa18753.png'
@@ -260,7 +260,7 @@ export default function Sidebar() {
             </div>
           </div>
           <div className="sidebar-footer-actions">
-            <button className="btn-sidebar-icon" title="Przełącz motyw" onClick={toggleTheme}>
+            <button className="btn-sidebar-icon" title="Przełącz motyw" aria-label={theme === 'dark' ? 'Przełącz na jasny motyw' : 'Przełącz na ciemny motyw'} onClick={toggleTheme}>
               {theme === 'dark' ? (
                 <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" strokeWidth="2" fill="none">
                   <circle cx="12" cy="12" r="5" />
@@ -279,7 +279,7 @@ export default function Sidebar() {
                 </svg>
               )}
             </button>
-            <button className="btn-sidebar-icon" title="Wyloguj się" onClick={logout}>
+            <button className="btn-sidebar-icon" title="Wyloguj się" aria-label="Wyloguj się" onClick={logout}>
               <svg viewBox="0 0 24 24" width="15" height="15" stroke="currentColor" strokeWidth="2" fill="none">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                 <polyline points="16 17 21 12 16 7" />

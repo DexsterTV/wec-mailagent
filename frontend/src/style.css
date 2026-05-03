@@ -220,6 +220,7 @@ body {
   padding: 8px 10px;
   border-radius: var(--radius-md);
   cursor: pointer;
+  touch-action: manipulation;
   color: var(--sidebar-text);
   text-decoration: none;
   font-size: 13px;
@@ -621,7 +622,8 @@ body {
   font-weight: 500;
   font-size: 12px;
   cursor: pointer;
-  transition: var(--transition-fast);
+  touch-action: manipulation;
+  transition: background-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
   color: var(--text-500);
   font-family: inherit;
 }
@@ -654,11 +656,11 @@ body {
   border-radius: var(--radius-lg);
   background: white;
   box-shadow: var(--shadow-glass);
-  transition: width 0.3s ease;
+  transition: max-width 0.3s ease;
 }
 
 .preview-container.mobile iframe {
-  width: 375px;
+  max-width: 375px;
 }
 
 /* ── Split Layout (Admin / Users / Contacts) ─────────────────────────────────── */
@@ -915,7 +917,8 @@ textarea {
   font-weight: 500;
   font-size: 13px;
   cursor: pointer;
-  transition: var(--transition-fast);
+  touch-action: manipulation;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast), opacity var(--transition-fast);
   border: 1px solid transparent;
   white-space: nowrap;
   text-decoration: none;
@@ -1006,7 +1009,7 @@ textarea {
   border-radius: var(--radius-md);
   background: var(--panel-bg);
   cursor: pointer;
-  transition: var(--transition-fast);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background-color var(--transition-fast);
   gap: 8px;
 }
 
@@ -1158,6 +1161,9 @@ textarea {
   background: var(--panel-bg);
   width: 440px;
   max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border-radius: var(--radius-xl);
   padding: 28px;
   box-shadow: var(--shadow-lg);
@@ -1613,6 +1619,7 @@ textarea {
    ══════════════════════════════════════════════════════════════ */
 
 [data-theme="dark"] {
+  color-scheme: dark;
   --workspace-bg: #0f172a;
   --panel-bg: #1e293b;
   --panel-border: rgba(255,255,255,0.08);

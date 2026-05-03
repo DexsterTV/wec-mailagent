@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useId } from 'react'
 import { useUsers } from '../features/users/useUsers'
 import { useAuth } from '../lib/auth'
 import { logsApi } from '../lib/api/logs'
@@ -18,6 +18,7 @@ interface UserModalProps {
 function UserModal({ user, onClose, onSave }: UserModalProps) {
   const [saving, setSaving] = useState(false)
   const [role, setRole] = useState<'admin' | 'user'>(user?.role ?? 'user')
+  const uid = useId()
   const isNew = !user?.username
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -53,29 +54,30 @@ function UserModal({ user, onClose, onSave }: UserModalProps) {
   return (
     <div className="modal active" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="modal-content">
-        <button className="close-btn" onClick={onClose}>&times;</button>
+        <button className="close-btn" aria-label="Zamknij" onClick={onClose}>&times;</button>
         <h2>{isNew ? 'Nowy użytkownik' : 'Edytuj użytkownika'}</h2>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Nazwa użytkownika</label>
-            <input type="text" name="username" defaultValue={user?.username ?? ''} required
+            <label htmlFor={`${uid}-username`}>Nazwa użytkownika</label>
+            <input id={`${uid}-username`} type="text" name="username" defaultValue={user?.username ?? ''} required
               readOnly={!isNew}
               style={!isNew ? { background: 'rgba(0,0,0,0.04)', cursor: 'not-allowed' } : undefined}
               pattern="[a-zA-Z0-9_.\-]{2,32}" title="2–32 znaków: litery, cyfry, _, ., -"
             />
           </div>
           <div className="form-group">
-            <label>Imię i nazwisko (wyświetlane)</label>
-            <input type="text" name="displayName" defaultValue={user?.displayName ?? ''} required />
+            <label htmlFor={`${uid}-displayName`}>Imię i nazwisko (wyświetlane)</label>
+            <input id={`${uid}-displayName`} type="text" name="displayName" defaultValue={user?.displayName ?? ''} required />
           </div>
           <div className="form-group">
-            <label>
+            <label htmlFor={`${uid}-email`}>
               Adres e-mail
               <span style={{ fontSize: 11, color: 'var(--text-400)', marginLeft: 6 }}>
                 (wymagany do logowania Google)
               </span>
             </label>
             <input
+              id={`${uid}-email`}
               type="email"
               name="email"
               defaultValue={user?.email ?? ''}
@@ -84,12 +86,12 @@ function UserModal({ user, onClose, onSave }: UserModalProps) {
             />
           </div>
           <div className="form-group">
-            <label>{isNew ? 'Hasło' : 'Nowe hasło (zostaw puste = bez zmian)'}</label>
-            <input type="password" name="password" autoComplete="new-password" />
+            <label htmlFor={`${uid}-password`}>{isNew ? 'Hasło' : 'Nowe hasło (zostaw puste = bez zmian)'}</label>
+            <input id={`${uid}-password`} type="password" name="password" autoComplete="new-password" />
           </div>
           <div className="form-group">
-            <label>Rola</label>
-            <select name="role" value={role} onChange={(e) => setRole(e.target.value as 'admin' | 'user')}>
+            <label htmlFor={`${uid}-role`}>Rola</label>
+            <select id={`${uid}-role`} name="role" value={role} onChange={(e) => setRole(e.target.value as 'admin' | 'user')}>
               <option value="user">Użytkownik</option>
               <option value="admin">Administrator</option>
             </select>
@@ -197,7 +199,7 @@ export default function UsersPage() {
                       flexShrink: 0,
                     }}>
                       {u.picture
-                        ? <img src={u.picture} alt="" style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
+                        ? <img src={u.picture} alt={u.displayName} style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
                         : getInitials(u.displayName)
                       }
                     </div>

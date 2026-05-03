@@ -244,8 +244,9 @@ function EditorPanel({ template, onSave, onCancel }: EditorPanelProps) {
         {activeTab === 'content' && (
           <>
             <div className="form-group" style={{ marginBottom: 16 }}>
-              <label>Nazwa szablonu</label>
+              <label htmlFor="tpl-name">Nazwa szablonu</label>
               <input
+                id="tpl-name"
                 type="text"
                 value={name}
                 placeholder="np. Mój Nowy Szablon"
@@ -263,7 +264,7 @@ function EditorPanel({ template, onSave, onCancel }: EditorPanelProps) {
                   marginBottom: 6,
                 }}
               >
-                <label style={{ margin: 0 }}>
+                <label htmlFor="tpl-html" style={{ margin: 0 }}>
                   Kod źródłowy HTML{' '}
                   <code style={{ fontSize: 11, fontWeight: 400 }}>
                     (&#123;&#123;zmienna&#125;&#125;, &lt;!--[if:warunek]--&gt;)
@@ -280,6 +281,7 @@ function EditorPanel({ template, onSave, onCancel }: EditorPanelProps) {
                 </div>
               </div>
               <textarea
+                id="tpl-html"
                 value={html}
                 onChange={(e) => setHtml(e.target.value)}
                 style={{ fontFamily: 'Consolas,monospace', fontSize: 12, minHeight: 220, width: '100%' }}

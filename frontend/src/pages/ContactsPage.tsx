@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useId } from 'react'
 import { useContacts } from '../features/contacts/useContacts'
 import { logsApi } from '../lib/api/logs'
 import type { Contact } from '../types'
@@ -15,6 +15,7 @@ interface ContactModalProps {
 
 function ContactModal({ contact, onClose, onSave }: ContactModalProps) {
   const [saving, setSaving] = useState(false)
+  const uid = useId()
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -38,16 +39,17 @@ function ContactModal({ contact, onClose, onSave }: ContactModalProps) {
   return (
     <div className="modal active" onClick={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="modal-content">
-        <button className="close-btn" onClick={onClose}>&times;</button>
+        <button className="close-btn" aria-label="Zamknij" onClick={onClose}>&times;</button>
         <h2>{contact?.id ? 'Edytuj kontakt' : 'Dodaj kontakt'}</h2>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Imię i nazwisko</label>
-            <input type="text" name="name" defaultValue={contact?.name ?? ''} required />
+            <label htmlFor={`${uid}-name`}>Imię i nazwisko</label>
+            <input id={`${uid}-name`} type="text" name="name" defaultValue={contact?.name ?? ''} required />
           </div>
           <div className="form-group">
-            <label>Stanowisko / firma – agencja</label>
+            <label htmlFor={`${uid}-position`}>Stanowisko / firma – agencja</label>
             <input
+              id={`${uid}-position`}
               type="text"
               name="position"
               defaultValue={contact?.position ?? ''}
@@ -56,12 +58,12 @@ function ContactModal({ contact, onClose, onSave }: ContactModalProps) {
             />
           </div>
           <div className="form-group">
-            <label>E-mail</label>
-            <input type="email" name="email" defaultValue={contact?.email ?? ''} required />
+            <label htmlFor={`${uid}-email`}>E-mail</label>
+            <input id={`${uid}-email`} type="email" name="email" defaultValue={contact?.email ?? ''} required />
           </div>
           <div className="form-group">
-            <label>Telefon</label>
-            <input type="tel" name="phone" defaultValue={contact?.phone ?? ''} />
+            <label htmlFor={`${uid}-phone`}>Telefon</label>
+            <input id={`${uid}-phone`} type="tel" name="phone" defaultValue={contact?.phone ?? ''} />
           </div>
           <button
             type="submit"
@@ -146,7 +148,6 @@ export default function ContactsPage() {
                 background: 'var(--workspace-bg)',
                 color: 'var(--text-900)',
                 width: 200,
-                outline: 'none',
               }}
             />
           )}
