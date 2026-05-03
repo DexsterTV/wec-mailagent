@@ -12,7 +12,7 @@ FROM node:20-alpine AS backend-deps
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY deploy/package*.json ./
 RUN npm ci --omit=dev
 
 FROM node:20-alpine
@@ -23,12 +23,12 @@ ENV NODE_ENV=production
 ENV PORT=3000
 
 COPY --from=backend-deps /app/node_modules ./node_modules
-COPY package*.json ./
-COPY server.js ./
-COPY routes ./routes
+COPY deploy/package*.json ./
+COPY deploy/server.js ./
+COPY deploy/routes ./routes
 RUN mkdir -p /app/data
-COPY .env.example ./.env.example
-COPY --from=frontend-builder /app/dist-frontend ./dist-frontend
+COPY deploy/.env.example ./.env.example
+COPY --from=frontend-builder /app/deploy/dist-frontend ./dist-frontend
 
 EXPOSE 3000
 
