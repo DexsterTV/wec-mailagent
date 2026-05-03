@@ -1,7 +1,7 @@
 'use strict'
 
 const express = require('express')
-const { readData, writeData } = require('./storage')
+const { writeData } = require('./storage')
 const { getUsers } = require('./auth')
 
 function makeUsersRouter(sessions, middleware) {
@@ -9,12 +9,12 @@ function makeUsersRouter(sessions, middleware) {
   const { requireAdmin } = middleware
 
   router.get('/', requireAdmin, (req, res) => {
-    const users = getUsers().map(({ password: _pw, ...rest }) => rest)
+    const users = getUsers().map(({ password: _pw, googleId: _gid, ...rest }) => rest)
     res.json(users)
   })
 
   router.post('/', requireAdmin, (req, res) => {
-    const { username, displayName, password, role, permissions } = req.body || {}
+    const { username, displayName, password, role, permissions, email } = req.body || {}
 
     if (!username || !displayName || !role) {
       return res.status(400).json({ error: 'Wymagane pola: username, displayName, role' })
@@ -26,21 +26,59 @@ function makeUsersRouter(sessions, middleware) {
       return res.status(400).json({ error: 'Nazwa użytkownika: 2–32 znaki, tylko litery, cyfry, _.-' })
     }
 
+    const normalizedEmail = email ? email.trim().toLowerCase() : null
+
     let users = getUsers()
     const idx = users.findIndex(u => u.username === username)
 
+    // Check email uniqueness (skip current user when editing)
+    if (normalizedEmail) {
+      const conflict = users.find(
+        (u, i) => i !== idx && u.email && u.email.trim().toLowerCase() === normalizedEmail
+      )
+      if (conflict) {
+        return res.status(409).json({ error: 'Użytkownik z takim adresem e-mail już istnieje' })
+      }
+    }
+
     if (idx >= 0) {
-      const updated = { ...users[idx], displayName, role, permissions: permissions || {} }
+      const existing = users[idx]
+      const updated = {
+        ...existing,
+        displayName,
+        role,
+        permissions:   permissions || {},
+        email:         normalizedEmail !== undefined ? normalizedEmail : existing.email,
+      }
       if (password) updated.password = password
       users[idx] = updated
+
       for (const [token, session] of sessions.entries()) {
         if (session.username === username) {
-          sessions.set(token, { ...session, displayName, role, permissions: permissions || {} })
+          sessions.set(token, {
+            ...session,
+            displayName,
+            role,
+            permissions: permissions || {},
+            email:       updated.email,
+          })
         }
       }
     } else {
-      if (!password) return res.status(400).json({ error: 'Hasło jest wymagane dla nowego użytkownika' })
-      users.push({ username, password, role, displayName, permissions: permissions || {} })
+      if (!password) {
+        return res.status(400).json({ error: 'Hasło jest wymagane dla nowego użytkownika' })
+      }
+      users.push({
+        username,
+        email:         normalizedEmail,
+        password,
+        role,
+        displayName,
+        permissions:   permissions || {},
+        authProviders: ['password'],
+        googleId:      null,
+        picture:       null,
+      })
     }
 
     writeData('users.json', users)
