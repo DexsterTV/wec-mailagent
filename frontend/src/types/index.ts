@@ -25,6 +25,7 @@ export interface TemplateField {
   type: FieldType
   default?: string
   section?: string
+  subsection?: string
   visibleIf?: string
   autofill?: string
   required?: boolean

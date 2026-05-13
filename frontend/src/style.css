@@ -754,11 +754,19 @@ body {
 /* ── Accordion Form Sections ─────────────────────────────────────────────────── */
 .form-section {
   border: 1px solid var(--panel-border);
+  border-left: 4px solid var(--panel-border);
   border-radius: var(--radius-md);
   margin-bottom: 8px;
   overflow: hidden;
   background: var(--panel-bg);
 }
+
+/* Section color coding */
+.form-section[data-section="Nagłówek"]           { border-left-color: #4f46e5; }
+.form-section[data-section="Treść"]              { border-left-color: #16a34a; }
+.form-section[data-section="Materiały prasowe"]  { border-left-color: #2563eb; }
+.form-section[data-section="Stopka"]             { border-left-color: #dc2626; }
+.form-section[data-section="Opcje"]              { border-left-color: #9333ea; }
 
 .form-section-header {
   display: flex;
@@ -791,10 +799,10 @@ body {
 
 .form-section-title {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-700);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
 }
 
 .form-section-chevron {
@@ -811,7 +819,31 @@ body {
   padding: 12px 14px 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+}
+
+/* Subsection grouping */
+.form-subsection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-subsection-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-400);
+  padding: 6px 0 4px;
+  border-top: 1px solid var(--panel-border);
+  margin-top: 4px;
+}
+
+.form-subsection:first-child .form-subsection-label {
+  border-top: none;
+  margin-top: 0;
+  padding-top: 0;
 }
 
 /* ── Forms & Inputs ──────────────────────────────────────────────────────────── */
@@ -819,6 +851,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 5px;
+  background: var(--workspace-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
 }
 
 .template-selector { margin-bottom: 0; }
@@ -1645,6 +1681,8 @@ textarea {
 [data-theme="dark"] .form-section-header { background: rgba(255,255,255,0.03); }
 [data-theme="dark"] .form-section[open] > .form-section-header { background: transparent; border-bottom-color: rgba(255,255,255,0.06); }
 [data-theme="dark"] .form-section-body { background: transparent; }
+[data-theme="dark"] .form-group { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.06); }
+[data-theme="dark"] .form-subsection-label { border-top-color: rgba(255,255,255,0.06); }
 
 [data-theme="dark"] .checkbox-group { background: rgba(255,255,255,0.03); }
 

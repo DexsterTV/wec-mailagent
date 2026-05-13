@@ -22,6 +22,20 @@ function groupBySection(fields: TemplateField[]): Record<string, TemplateField[]
   return grouped
 }
 
+function groupBySubsection(fields: TemplateField[]): { subsection: string | null; fields: TemplateField[] }[] {
+  const result: { subsection: string | null; fields: TemplateField[] }[] = []
+  let current: { subsection: string | null; fields: TemplateField[] } | null = null
+  fields.forEach((f) => {
+    const sub = f.subsection ?? null
+    if (!current || current.subsection !== sub) {
+      current = { subsection: sub, fields: [] }
+      result.push(current)
+    }
+    current.fields.push(f)
+  })
+  return result
+}
+
 function sortSections(sections: string[]): string[] {
   return [...sections].sort((a, b) => {
     let ia = SECTION_ORDER.indexOf(a)
@@ -56,8 +70,10 @@ export default function DynamicForm({
         })
         if (visibleFields.length === 0) return null
 
+        const subsectionGroups = groupBySubsection(visibleFields)
+
         return (
-          <details key={secName} className="form-section">
+          <details key={secName} className="form-section" data-section={secName}>
             <summary className="form-section-header">
               <span className="form-section-title">{secName}</span>
               <svg
@@ -73,17 +89,24 @@ export default function DynamicForm({
               </svg>
             </summary>
             <div className="form-section-body">
-              {visibleFields.map((field) => (
-                <FieldRow
-                  key={field.id}
-                  field={field}
-                  value={values[field.id] ?? ''}
-                  contacts={contacts}
-                  htmlTemplate={template.html}
-                  onChange={onChange}
-                  onContactSelect={onContactSelect}
-                  onBooleanToggle={onBooleanToggle}
-                />
+              {subsectionGroups.map((group, gi) => (
+                <div key={gi} className="form-subsection">
+                  {group.subsection && (
+                    <div className="form-subsection-label">{group.subsection}</div>
+                  )}
+                  {group.fields.map((field) => (
+                    <FieldRow
+                      key={field.id}
+                      field={field}
+                      value={values[field.id] ?? ''}
+                      contacts={contacts}
+                      htmlTemplate={template.html}
+                      onChange={onChange}
+                      onContactSelect={onContactSelect}
+                      onBooleanToggle={onBooleanToggle}
+                    />
+                  ))}
+                </div>
               ))}
             </div>
           </details>
