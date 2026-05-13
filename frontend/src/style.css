@@ -851,6 +851,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 5px;
+}
+
+.form-section-body .form-group {
   background: var(--workspace-bg);
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-sm);
@@ -1681,7 +1684,7 @@ textarea {
 [data-theme="dark"] .form-section-header { background: rgba(255,255,255,0.03); }
 [data-theme="dark"] .form-section[open] > .form-section-header { background: transparent; border-bottom-color: rgba(255,255,255,0.06); }
 [data-theme="dark"] .form-section-body { background: transparent; }
-[data-theme="dark"] .form-group { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.06); }
+[data-theme="dark"] .form-section-body .form-group { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.06); }
 [data-theme="dark"] .form-subsection-label { border-top-color: rgba(255,255,255,0.06); }
 
 [data-theme="dark"] .checkbox-group { background: rgba(255,255,255,0.03); }
