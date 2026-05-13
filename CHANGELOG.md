@@ -6,6 +6,14 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
 
 ---
 
+## [0.2.3] - 2026-05-13
+
+### Poprawki szablonów
+- Usunięto ikony osadzone jako `data:image/svg+xml` URI — blokowane przez Prowly i klientów pocztowych, ikony nie były widoczne w wysłanym mailingu
+- Naprawiono hardcoded `href="mailto:..."` i `href="tel:..."` w stopce — link do e-maila i telefonu używał zawsze domyślnego adresu zamiast danych wybranego kontaktu PR; teraz oba atrybuty są podmieniane dynamicznie przez placeholder (`{{a_11}}`, `{{a_12}}` itd.)
+
+---
+
 ## [0.2.2] - 2026-05-03
 
 ### Poprawki i ulepszenia
