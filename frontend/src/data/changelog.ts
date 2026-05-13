@@ -6,6 +6,19 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.2.3',
+    date: '2026-05-13',
+    sections: [
+      {
+        label: 'Poprawki szablonów',
+        items: [
+          'Usunięto ikony osadzone jako data:image/svg+xml URI — blokowane przez Prowly i klientów pocztowych, ikony nie były widoczne w wysłanym mailingu',
+          'Naprawiono hardcoded href="mailto:..." i href="tel:..." w stopce — link używał zawsze domyślnego adresu zamiast danych wybranego kontaktu PR; teraz oba atrybuty są podmieniane dynamicznie przez placeholder',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.2.2',
     date: '2026-05-03',
     sections: [
