@@ -6,6 +6,7 @@ const FIELD_TYPES: { value: FieldType; label: string }[] = [
   { value: 'text', label: 'Tekst' },
   { value: 'textarea', label: 'Długi tekst' },
   { value: 'image-url', label: 'URL obrazu' },
+  { value: 'color', label: 'Kolor' },
   { value: 'boolean', label: 'Przełącznik (tak/nie)' },
   { value: 'contact-select', label: 'Wybór kontaktu PR' },
 ]
@@ -64,15 +65,47 @@ export default function FieldEditor({ field, index, onChange, onRemove }: Props)
             ))}
           </select>
         </div>
-        <div className="form-group" style={{ margin: 0 }}>
-          <label style={{ fontSize: '0.75rem' }}>Domyślna wartość</label>
-          <input
-            className="field-setting-default"
-            type="text"
-            value={field.default !== undefined ? String(field.default) : ''}
-            onChange={(e) => set('default', e.target.value)}
-          />
-        </div>
+        {field.type === 'color' ? (
+          <div className="form-group" style={{ margin: 0 }}>
+            <label style={{ fontSize: '0.75rem' }}>Domyślny kolor</label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <label style={{ position: 'relative', cursor: 'pointer', flexShrink: 0 }}>
+                <div style={{
+                  width: 28, height: 28, borderRadius: 5,
+                  background: /^#[0-9a-f]{6}$/i.test(field.default ?? '') ? field.default : '#ffffff',
+                  border: '2px solid var(--panel-border)',
+                  boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)',
+                }} />
+                <input
+                  type="color"
+                  value={/^#[0-9a-f]{6}$/i.test(field.default ?? '') ? (field.default ?? '#ffffff') : '#ffffff'}
+                  onChange={(e) => set('default', e.target.value)}
+                  style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }}
+                  tabIndex={-1}
+                />
+              </label>
+              <input
+                className="field-setting-default"
+                type="text"
+                value={field.default !== undefined ? String(field.default) : ''}
+                placeholder="#000000"
+                maxLength={7}
+                onChange={(e) => set('default', e.target.value)}
+                style={{ fontFamily: 'Consolas, monospace', fontSize: 12 }}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="form-group" style={{ margin: 0 }}>
+            <label style={{ fontSize: '0.75rem' }}>Domyślna wartość</label>
+            <input
+              className="field-setting-default"
+              type="text"
+              value={field.default !== undefined ? String(field.default) : ''}
+              onChange={(e) => set('default', e.target.value)}
+            />
+          </div>
+        )}
         <div className="form-group" style={{ margin: 0 }}>
           <label style={{ fontSize: '0.75rem' }}>Sekcja w edytorze</label>
           <select

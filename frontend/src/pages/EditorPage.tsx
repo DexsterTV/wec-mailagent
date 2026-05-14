@@ -5,7 +5,7 @@ import DynamicForm from '../features/editor/DynamicForm'
 import { renderTemplate } from '../lib/utils/engine'
 import { getRenderableValues, decorateImageTags } from '../lib/utils/templateUtils'
 import { extractColors } from '../lib/utils/colorExtractor'
-import { replaceColorInHtml } from '../lib/utils/colorReplacer'
+import { replaceColorInHtml, replaceColorForProperty } from '../lib/utils/colorReplacer'
 import { drafts } from '../lib/utils/drafts'
 import { logsApi } from '../lib/api/logs'
 import { injectPressData, injectDocxButton } from '../lib/utils/pressInjector'
@@ -41,10 +41,14 @@ function getDefaultValues(template: Template): Record<string, string> {
 
 // ─── Color panel ─────────────────────────────────────────────────────────────
 
+function colorKey(c: DetectedColor): string {
+  return c.primaryProperty ? `${c.hex}|${c.primaryProperty}` : c.hex
+}
+
 interface ColorPanelProps {
   colors: DetectedColor[]
   overrides: Record<string, string>
-  onOverride: (originalHex: string, newHex: string) => void
+  onOverride: (key: string, originalHex: string, newHex: string) => void
 }
 
 function ColorPanel({ colors, overrides, onOverride }: ColorPanelProps) {
@@ -58,10 +62,11 @@ function ColorPanel({ colors, overrides, onOverride }: ColorPanelProps) {
     )
   }
 
+  // Group by role (the part before " — " in the label)
   const grouped = colors.reduce<Record<string, DetectedColor[]>>((acc, c) => {
-    const key = c.label
-    if (!acc[key]) acc[key] = []
-    acc[key].push(c)
+    const groupLabel = c.label.split(' — ')[0] || c.label
+    if (!acc[groupLabel]) acc[groupLabel] = []
+    acc[groupLabel].push(c)
     return acc
   }, {})
 
@@ -80,17 +85,20 @@ function ColorPanel({ colors, overrides, onOverride }: ColorPanelProps) {
             {groupLabel}
           </div>
           {groupColors.map((color) => {
-            const currentHex = overrides[color.hex] ?? color.hex
-            const inputVal = hexInputs[color.hex] ?? currentHex
+            const ck = colorKey(color)
+            const currentHex = overrides[ck] ?? color.hex
+            const inputVal = hexInputs[ck] ?? currentHex
+            const propLabel = color.primaryProperty
+              ? (color.label.split(' — ')[1] ?? color.primaryProperty)
+              : null
 
             return (
-              <div key={color.hex} style={{
+              <div key={ck} style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
                 marginBottom: 6,
               }}>
-                {/* Swatch — clicking opens native color picker via hidden input */}
                 <label style={{ position: 'relative', cursor: 'pointer', flexShrink: 0 }}>
                   <div style={{
                     width: 28,
@@ -104,25 +112,24 @@ function ColorPanel({ colors, overrides, onOverride }: ColorPanelProps) {
                     type="color"
                     value={currentHex}
                     onChange={(e) => {
-                      onOverride(color.hex, e.target.value)
-                      setHexInputs((p) => ({ ...p, [color.hex]: e.target.value }))
+                      onOverride(ck, color.hex, e.target.value)
+                      setHexInputs((p) => ({ ...p, [ck]: e.target.value }))
                     }}
                     style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }}
                     tabIndex={-1}
                   />
                 </label>
 
-                {/* Hex input */}
                 <input
                   type="text"
                   value={inputVal}
                   maxLength={9}
                   onChange={(e) => {
-                    setHexInputs((p) => ({ ...p, [color.hex]: e.target.value }))
+                    setHexInputs((p) => ({ ...p, [ck]: e.target.value }))
                     const v = e.target.value.startsWith('#') ? e.target.value : `#${e.target.value}`
-                    if (/^#[0-9a-fA-F]{6}$/.test(v)) onOverride(color.hex, v.toLowerCase())
+                    if (/^#[0-9a-fA-F]{6}$/.test(v)) onOverride(ck, color.hex, v.toLowerCase())
                   }}
-                  onBlur={() => setHexInputs((p) => ({ ...p, [color.hex]: currentHex }))}
+                  onBlur={() => setHexInputs((p) => ({ ...p, [ck]: currentHex }))}
                   style={{
                     width: 76,
                     fontFamily: 'Consolas, monospace',
@@ -136,19 +143,20 @@ function ColorPanel({ colors, overrides, onOverride }: ColorPanelProps) {
                 />
 
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
-                    Wystąpienia: {color.count}
-                  </div>
+                  {propLabel ? (
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>{propLabel}</div>
+                  ) : (
+                    <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>×{color.count}</div>
+                  )}
                 </div>
 
-                {/* Reset button — only if overridden */}
-                {overrides[color.hex] && (
+                {overrides[ck] && (
                   <button
                     title="Przywróć oryginalny kolor"
                     aria-label="Przywróć oryginalny kolor"
                     onClick={() => {
-                      onOverride(color.hex, color.hex)
-                      setHexInputs((p) => ({ ...p, [color.hex]: color.hex }))
+                      onOverride(ck, color.hex, color.hex)
+                      setHexInputs((p) => ({ ...p, [ck]: color.hex }))
                     }}
                     style={{
                       background: 'none',
@@ -236,9 +244,14 @@ export default function EditorPage() {
     if (!currentTemplate) return ''
     let html = currentTemplate.html
     for (const color of detectedColors) {
-      const override = colorOverrides[color.hex]
+      const ck = colorKey(color)
+      const override = colorOverrides[ck]
       if (override && override !== color.hex) {
-        html = replaceColorInHtml(html, color.rawForms, override)
+        if (color.primaryProperty) {
+          html = replaceColorForProperty(html, color.primaryProperty, color.rawForms, override)
+        } else {
+          html = replaceColorInHtml(html, color.rawForms, override)
+        }
       }
     }
     return html
@@ -326,11 +339,10 @@ export default function EditorPage() {
     })
   }
 
-  function handleColorOverride(originalHex: string, newHex: string) {
+  function handleColorOverride(key: string, originalHex: string, newHex: string) {
     setColorOverrides((prev) => {
-      const next = { ...prev, [originalHex]: newHex }
-      // Clean up if reverted to original
-      if (newHex === originalHex) delete next[originalHex]
+      const next = { ...prev, [key]: newHex }
+      if (newHex === originalHex) delete next[key]
       return next
     })
   }

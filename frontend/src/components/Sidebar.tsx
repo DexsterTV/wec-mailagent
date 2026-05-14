@@ -4,7 +4,7 @@ import { useAuth } from '../lib/auth'
 import { applyTheme, getStoredTheme } from '../lib/utils/theme'
 import { CHANGELOG } from '../data/changelog'
 
-const APP_VERSION = '0.2.3'
+const APP_VERSION = '0.2.4'
 
 const LOGO_URL =
   'https://prowly-prod.s3.eu-west-1.amazonaws.com/uploads/1230/assets/826775/-05f2bd38f27c35001ab1be34eaa18753.png'

@@ -6,6 +6,22 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
 
 ---
 
+## [0.2.4] - 2026-05-14
+
+### Nowe funkcje — zakładka Wygląd w edytorze szablonów
+- Nowa zakładka „Wygląd" w kreatorze szablonu — trwała edycja kolorów, czcionek i typografii bezpośrednio w kodzie HTML szablonu
+- Edytor kolorów: skanowanie i podmiana każdego koloru osobno per właściwość CSS (ten sam hex w `background-color` i `border-color` to dwa niezależne pola)
+- Edytor czcionek: wykrywanie font-family w szablonie, podmiana z listy bezpiecznych fontów systemowych; podgląd „Zażółć gęślą jaźń" w wybranym kroju
+- Edytor typografii: wykrywanie font-size, line-height, letter-spacing; podgląd „Przykładowy tekst" z zastosowaną wartością, label z numerem wariantu i liczbą użyć
+- Podgląd na żywo szablonu (desktop/mobile) z podstawionymi wartościami domyślnymi pól
+- Sekcje Kolory / Czcionki / Typografia wyróżnione kolorystycznie (niebieski / fioletowy / cyjan)
+
+### Poprawki edytora
+- Każdy kolor w edytorze (EditorPage) edytowalny osobno per właściwość CSS — ta sama barwa w tekście i tle nie zmienia się jednocześnie
+- Naprawiono scrollowanie panelu Wygląd — właściwy łańcuch flex/overflow (wzorzec editor-form-panel / editor-form-inner)
+
+---
+
 ## [0.2.3] - 2026-05-13
 
 ### Poprawki szablonów

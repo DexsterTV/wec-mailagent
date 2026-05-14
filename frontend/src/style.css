@@ -729,6 +729,40 @@ body {
   padding: 24px;
 }
 
+.appearance-split {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.appearance-left {
+  width: 360px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-right: 1px solid var(--panel-border);
+}
+
+.appearance-left-inner {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px;
+}
+
+.appearance-left-inner::-webkit-scrollbar { width: 4px; }
+.appearance-left-inner::-webkit-scrollbar-track { background: transparent; }
+.appearance-left-inner::-webkit-scrollbar-thumb { background: var(--panel-border); border-radius: 2px; }
+
+.appearance-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--workspace-bg);
+}
+
 /* Empty state (right panel) */
 .empty-state {
   display: flex;
@@ -761,12 +795,17 @@ body {
   background: var(--panel-bg);
 }
 
-/* Section color coding */
+/* Section color coding — editor fields */
 .form-section[data-section="Nagłówek"]           { border-left-color: #4f46e5; }
 .form-section[data-section="Treść"]              { border-left-color: #16a34a; }
 .form-section[data-section="Materiały prasowe"]  { border-left-color: #2563eb; }
 .form-section[data-section="Stopka"]             { border-left-color: #dc2626; }
 .form-section[data-section="Opcje"]              { border-left-color: #9333ea; }
+
+/* Section color coding — appearance tab */
+.form-section[data-section="Kolory"]             { border-left-color: #2563eb; }
+.form-section[data-section="Czcionki"]           { border-left-color: #9333ea; }
+.form-section[data-section="Typografia"]         { border-left-color: #0891b2; }
 
 .form-section-header {
   display: flex;
@@ -1615,6 +1654,15 @@ textarea {
   flex-direction: column;
   gap: 8px;
   position: relative;
+}
+
+/* Inside FieldEditor cards the inner form-groups should not inherit card styling */
+.template-field-list .form-group,
+.admin-field-row .form-group {
+  background: none;
+  border: none;
+  border-radius: 0;
+  padding: 0;
 }
 
 /* ── User permission row ─────────────────────────────────────────────────────── */

@@ -17,7 +17,7 @@ export interface AuthUser extends User {
   token: string
 }
 
-export type FieldType = 'text' | 'textarea' | 'image-url' | 'boolean' | 'contact-select'
+export type FieldType = 'text' | 'textarea' | 'image-url' | 'boolean' | 'contact-select' | 'color'
 
 export interface TemplateField {
   id: string
@@ -36,12 +36,26 @@ export type ColorRole = 'primary' | 'secondary' | 'accent' | 'background' | 'tex
 
 export interface DetectedColor {
   hex: string
+  primaryProperty?: string
   rawForms: string[]
   count: number
   properties: string[]
   role: ColorRole
   label: string
   isNeutral: boolean
+}
+
+export interface DetectedFont {
+  family: string
+  rawForms: string[]
+  count: number
+}
+
+export interface DetectedTypographyValue {
+  property: 'font-size' | 'line-height' | 'letter-spacing'
+  value: string
+  rawForms: string[]
+  count: number
 }
 
 export type PressRole =
@@ -72,6 +86,9 @@ export interface Template {
   html: string
   pressMappings?: PressMapEntry[]
   docxButtonSelector?: string
+  colorMappings?: DetectedColor[]
+  fontMappings?: DetectedFont[]
+  typographyMappings?: DetectedTypographyValue[]
   createdBy?: string
   createdAt?: string
 }

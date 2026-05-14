@@ -6,6 +6,29 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.2.4',
+    date: '2026-05-14',
+    sections: [
+      {
+        label: 'Nowe funkcje — zakładka Wygląd',
+        items: [
+          'Nowa zakładka „Wygląd" w kreatorze szablonu — trwała edycja kolorów, czcionek i typografii bezpośrednio w HTML szablonu z podglądem na żywo',
+          'Edytor kolorów: każdy kolor edytowalny osobno per właściwość CSS (ten sam hex w background-color i border-color to dwa niezależne pola)',
+          'Edytor czcionek: wykrywanie font-family, podmiana z listy fontów systemowych, podgląd „Zażółć gęślą jaźń" w wybranym kroju',
+          'Edytor typografii: wykrywanie font-size, line-height, letter-spacing z podglądem wartości i numerem wariantu',
+          'Sekcje Kolory / Czcionki / Typografia wyróżnione kolorystycznie',
+        ],
+      },
+      {
+        label: 'Poprawki edytora',
+        items: [
+          'Kolory w panelu edytora (EditorPage) edytowalne osobno per właściwość CSS — ta sama barwa w tekście i tle nie zmienia się jednocześnie',
+          'Naprawiono scrollowanie panelu bocznego w zakładce Wygląd',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.2.3',
     date: '2026-05-13',
     sections: [

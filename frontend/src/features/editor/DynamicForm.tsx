@@ -169,6 +169,56 @@ function FieldRow({
     )
   }
 
+  if (field.type === 'color') {
+    const safeHex = /^#[0-9a-f]{6}$/i.test(value) ? value : '#ffffff'
+    return (
+      <div className="form-group">
+        <label htmlFor={id}>{field.label}</label>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <label style={{ position: 'relative', cursor: field.locked ? 'not-allowed' : 'pointer', flexShrink: 0 }}>
+            <div style={{
+              width: 32,
+              height: 32,
+              borderRadius: 6,
+              background: safeHex,
+              border: '2px solid var(--panel-border)',
+              boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.08)',
+              opacity: field.locked ? 0.5 : 1,
+            }} />
+            {!field.locked && (
+              <input
+                type="color"
+                value={safeHex}
+                onChange={(e) => onChange(field.id, e.target.value)}
+                style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }}
+                tabIndex={-1}
+              />
+            )}
+          </label>
+          <input
+            type="text"
+            id={id}
+            name={field.id}
+            value={value}
+            placeholder="#000000"
+            maxLength={7}
+            readOnly={!!field.locked}
+            onChange={(e) => {
+              const v = e.target.value.trim()
+              onChange(field.id, v.startsWith('#') ? v : v ? `#${v}` : v)
+            }}
+            style={{
+              width: 96,
+              fontFamily: 'Consolas, monospace',
+              fontSize: 13,
+              ...(field.locked ? { backgroundColor: 'rgba(0,0,0,0.04)', cursor: 'not-allowed' } : {}),
+            }}
+          />
+        </div>
+      </div>
+    )
+  }
+
   if (field.type === 'image-url') {
     return (
       <div className="form-group">

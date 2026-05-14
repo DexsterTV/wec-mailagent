@@ -1,20 +1,24 @@
-import { useState, type ChangeEvent } from 'react'
+import { useState, useRef, useEffect, type ChangeEvent } from 'react'
 import { useTemplates } from '../features/editor/useTemplateStore'
 import { useAuth } from '../lib/auth'
 import { logsApi } from '../lib/api/logs'
 import { smartHtmlTransformer, scanHtmlForVars } from '../lib/utils/smartHtmlTransformer'
 import { mergeTemplateMetadata } from '../lib/utils/templateEditor'
 import { DEFAULT_TEMPLATES } from '../lib/utils/defaultTemplates'
+import { renderTemplate } from '../lib/utils/engine'
 import FieldEditor from '../features/templates/FieldEditor'
 import PressMappingPanel from '../features/templates/PressMappingPanel'
 import DocxButtonPanel from '../features/templates/DocxButtonPanel'
-import type { Template, TemplateField, PressMapEntry } from '../types'
+import ColorEditor from '../features/templates/ColorEditor'
+import FontEditor from '../features/templates/FontEditor'
+import TypographyEditor from '../features/templates/TypographyEditor'
+import type { Template, TemplateField, PressMapEntry, DetectedColor, DetectedFont, DetectedTypographyValue } from '../types'
 
 function emptyField(): TemplateField {
   return { id: '', label: '', type: 'text', default: '', section: 'Ogólne' }
 }
 
-type EditorTab = 'content' | 'mapping' | 'docx'
+type EditorTab = 'content' | 'mapping' | 'docx' | 'appearance'
 
 const FIELD_SECTION_ORDER = ['Nagłówek', 'Treść', 'Materiały prasowe', 'Opcje', 'Stopka', 'Ogólne']
 
@@ -62,12 +66,40 @@ function EditorPanel({ template, onSave, onCancel }: EditorPanelProps) {
   const [fields, setFields] = useState<TemplateField[]>(template?.fields ?? [])
   const [pressMappings, setPressMappings] = useState<PressMapEntry[]>(template?.pressMappings ?? [])
   const [docxButtonSelector, setDocxButtonSelector] = useState<string>(template?.docxButtonSelector ?? '')
+  const [colorMappings, setColorMappings] = useState<DetectedColor[]>(template?.colorMappings ?? [])
+  const [fontMappings, setFontMappings] = useState<DetectedFont[]>(template?.fontMappings ?? [])
+  const [typographyMappings, setTypographyMappings] = useState<DetectedTypographyValue[]>(template?.typographyMappings ?? [])
+  const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop')
+  const previewRef = useRef<HTMLIFrameElement>(null)
   const [activeTab, setActiveTab] = useState<EditorTab>('content')
   const [saving, setSaving] = useState(false)
   const [savedMsg, setSavedMsg] = useState('')
 
   const editingId = template?.id ?? null
   const groupedFields = groupFieldsBySection(fields)
+
+  // Update appearance preview whenever html or fields change
+  useEffect(() => {
+    if (activeTab !== 'appearance') return
+    const frame = previewRef.current
+    if (!frame || !html.trim()) return
+    const doc = frame.contentDocument || frame.contentWindow?.document
+    if (!doc) return
+
+    // Substitute field default values so preview shows real content, not {{placeholders}}
+    const defaults: Record<string, string> = {}
+    fields.forEach((f) => { defaults[f.id] = f.default !== undefined ? String(f.default) : '' })
+    const rendered = renderTemplate(html, defaults, {})
+
+    const csp = `<meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob:;">`
+    const safe = /<head[^>]*>/i.test(rendered)
+      ? rendered.replace(/(<head[^>]*>)/i, `$1\n${csp}`)
+      : csp + rendered
+
+    doc.open()
+    doc.write(safe)
+    doc.close()
+  }, [html, activeTab, fields])
 
   function addField() {
     setFields((prev) => [...prev, emptyField()])
@@ -154,6 +186,9 @@ function EditorPanel({ template, onSave, onCancel }: EditorPanelProps) {
         html,
         pressMappings: pressMappings.length > 0 ? pressMappings : undefined,
         docxButtonSelector: docxButtonSelector.trim() || undefined,
+        colorMappings: colorMappings.length > 0 ? colorMappings : undefined,
+        fontMappings: fontMappings.length > 0 ? fontMappings : undefined,
+        typographyMappings: typographyMappings.length > 0 ? typographyMappings : undefined,
       })
       setSavedMsg('Zapisano!')
       setTimeout(() => setSavedMsg(''), 3000)
@@ -163,7 +198,7 @@ function EditorPanel({ template, onSave, onCancel }: EditorPanelProps) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
       <div className="split-right-topbar">
         <span className="split-right-title">Kreator szablonu</span>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -199,11 +234,12 @@ function EditorPanel({ template, onSave, onCancel }: EditorPanelProps) {
           flexShrink: 0,
         }}
       >
-        {(['content', 'mapping', 'docx'] as EditorTab[]).map((tab) => {
+        {(['content', 'appearance', 'mapping', 'docx'] as EditorTab[]).map((tab) => {
           const labels: Record<EditorTab, string> = {
             content: 'Treść',
-            mapping: 'Mapowanie informacji prasowych',
-            docx: 'Przycisk pobierania .docx',
+            appearance: 'Wygląd',
+            mapping: 'Mapowanie prasowe',
+            docx: 'Przycisk .docx',
           }
 
           return (
@@ -222,9 +258,15 @@ function EditorPanel({ template, onSave, onCancel }: EditorPanelProps) {
                 borderBottom: activeTab === tab ? '2px solid var(--accent)' : '2px solid transparent',
                 marginBottom: -1,
                 transition: 'color 0.15s',
+                whiteSpace: 'nowrap',
               }}
             >
               {labels[tab]}
+              {tab === 'appearance' && (colorMappings.length > 0 || fontMappings.length > 0) && (
+                <span style={{ marginLeft: 6, fontSize: 10, background: '#8b5cf6', color: '#fff', borderRadius: 8, padding: '1px 5px' }}>
+                  {colorMappings.length + fontMappings.length}
+                </span>
+              )}
               {tab === 'mapping' && pressMappings.length > 0 && (
                 <span style={{ marginLeft: 6, fontSize: 10, background: '#10b981', color: '#fff', borderRadius: 8, padding: '1px 5px' }}>
                   {pressMappings.length}
@@ -240,7 +282,18 @@ function EditorPanel({ template, onSave, onCancel }: EditorPanelProps) {
         })}
       </div>
 
-      <div className="split-right-body" style={{ flex: 1, overflowY: 'auto' }}>
+      <div
+        className="split-right-body"
+        style={{
+          minHeight: 0,
+          ...(activeTab === 'appearance' && {
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            padding: 0,
+          }),
+        }}
+      >
         {activeTab === 'content' && (
           <>
             <div className="form-group" style={{ marginBottom: 16 }}>
@@ -299,35 +352,21 @@ function EditorPanel({ template, onSave, onCancel }: EditorPanelProps) {
             </div>
 
             {fields.length > 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {groupedFields.map(({ section, items }) => (
-                  <section key={section} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: 12,
-                        paddingBottom: 6,
-                        borderBottom: '1px solid var(--panel-border)',
-                      }}
-                    >
-                      <h4
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 700,
-                          color: 'var(--text-700)',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          margin: 0,
-                        }}
-                      >
+                  <details key={section} className="form-section" data-section={section} open>
+                    <summary className="form-section-header">
+                      <span className="form-section-title">
                         {section}
-                      </h4>
-                      <span className="badge badge-neutral">Pól: {items.length}</span>
-                    </div>
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <span className="badge badge-neutral" style={{ marginLeft: 8, fontWeight: 500 }}>
+                          {items.length}
+                        </span>
+                      </span>
+                      <svg className="form-section-chevron" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none">
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </summary>
+                    <div className="form-section-body template-field-list">
                       {items.map(({ field, index }) => (
                         <FieldEditor
                           key={`${section}-${field.id || 'field'}-${index}`}
@@ -338,12 +377,12 @@ function EditorPanel({ template, onSave, onCancel }: EditorPanelProps) {
                         />
                       ))}
                     </div>
-                  </section>
+                  </details>
                 ))}
               </div>
             ) : (
               <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-                Brak pól. Kliknij „+ Dodaj pole” lub użyj „Skanuj tagi”.
+                Brak pól. Kliknij „+ Dodaj pole" lub użyj „Skanuj tagi".
               </p>
             )}
           </>
@@ -356,6 +395,108 @@ function EditorPanel({ template, onSave, onCancel }: EditorPanelProps) {
             pressMappings={pressMappings}
             onChange={setPressMappings}
           />
+        )}
+
+        {activeTab === 'appearance' && (
+          <div className="appearance-split">
+            {/* LEFT — scrollable controls */}
+            <div className="appearance-left">
+              <div className="appearance-left-inner">
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '0 0 8px' }}>
+                  Zmiany są zapisywane trwale w kodzie HTML szablonu. Podgląd na żywo po prawej.
+                </p>
+
+                <details className="form-section" data-section="Kolory" open>
+                  <summary className="form-section-header">
+                    <span className="form-section-title">
+                      Kolory
+                      {colorMappings.length > 0 && (
+                        <span className="badge badge-neutral" style={{ marginLeft: 8 }}>{colorMappings.length}</span>
+                      )}
+                    </span>
+                    <svg className="form-section-chevron" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </summary>
+                  <div className="form-section-body template-field-list">
+                    <ColorEditor
+                      html={html}
+                      colorMappings={colorMappings}
+                      onChange={(newHtml, newMappings) => { setHtml(newHtml); setColorMappings(newMappings) }}
+                    />
+                  </div>
+                </details>
+
+                <details className="form-section" data-section="Czcionki">
+                  <summary className="form-section-header">
+                    <span className="form-section-title">
+                      Czcionki
+                      {fontMappings.length > 0 && (
+                        <span className="badge badge-neutral" style={{ marginLeft: 8 }}>{fontMappings.length}</span>
+                      )}
+                    </span>
+                    <svg className="form-section-chevron" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </summary>
+                  <div className="form-section-body template-field-list">
+                    <FontEditor
+                      html={html}
+                      fontMappings={fontMappings}
+                      onChange={(newHtml, newMappings) => { setHtml(newHtml); setFontMappings(newMappings) }}
+                    />
+                  </div>
+                </details>
+
+                <details className="form-section" data-section="Typografia">
+                  <summary className="form-section-header">
+                    <span className="form-section-title">
+                      Typografia
+                      {typographyMappings.length > 0 && (
+                        <span className="badge badge-neutral" style={{ marginLeft: 8 }}>{typographyMappings.length}</span>
+                      )}
+                    </span>
+                    <svg className="form-section-chevron" viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2" fill="none">
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </summary>
+                  <div className="form-section-body template-field-list">
+                    <TypographyEditor
+                      html={html}
+                      typographyMappings={typographyMappings}
+                      onChange={(newHtml, newMappings) => { setHtml(newHtml); setTypographyMappings(newMappings) }}
+                    />
+                  </div>
+                </details>
+              </div>
+            </div>
+
+            {/* RIGHT — live preview */}
+            <div className="appearance-right">
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+                padding: '6px 12px',
+                borderBottom: '1px solid var(--panel-border)',
+                background: 'var(--panel-bg)',
+                flexShrink: 0,
+              }}>
+                <div className="preview-toggles">
+                  <button className={`toggle-btn${previewMode === 'desktop' ? ' active' : ''}`} onClick={() => setPreviewMode('desktop')}>Desktop</button>
+                  <button className={`toggle-btn${previewMode === 'mobile' ? ' active' : ''}`} onClick={() => setPreviewMode('mobile')}>Mobile</button>
+                </div>
+                {!html.trim() && (
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginLeft: 8 }}>
+                    Wgraj HTML, aby zobaczyc podglad
+                  </span>
+                )}
+              </div>
+              <div className={`preview-container ${previewMode}`} style={{ flex: 1, overflow: 'auto' }}>
+                <iframe ref={previewRef} title="Podglad szablonu" />
+              </div>
+            </div>
+          </div>
         )}
 
         {activeTab === 'docx' && (
@@ -393,7 +534,7 @@ export default function TemplatesPage() {
   }
 
   async function handleDelete(tpl: Template) {
-    if (!confirm(`Czy na pewno usunąć szablon „${tpl.name}”?`)) return
+    if (!confirm(`Czy na pewno usunąć szablon „${tpl.name}"?`)) return
     await deleteTemplate(tpl.id)
     logsApi.add('TEMPLATE_DELETE', `Usunięto szablon: ${tpl.name}`)
 

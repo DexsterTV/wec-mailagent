@@ -109,9 +109,12 @@ interface RawEntry {
   rawForms: Set<string>
   count: number
   properties: Set<string>
+  hex: string
+  property: string
 }
 
 export function extractColors(html: string): DetectedColor[] {
+  // Map key: "${hex}|${cssProperty}" — one entry per (color, property) combination
   const map = new Map<string, RawEntry>()
 
   function processStyleValue(styleText: string) {
@@ -122,13 +125,13 @@ export function extractColors(html: string): DetectedColor[] {
       const hex = normalizeToHex(raw)
       if (!hex) continue
 
-      // Try to find the property name before this match
       const before = styleText.slice(Math.max(0, m.index - 60), m.index)
       const propMatch = before.match(/([\w-]+)\s*:\s*[^;]*$/)
       const prop = propMatch ? propMatch[1].toLowerCase() : ''
 
-      if (!map.has(hex)) map.set(hex, { rawForms: new Set(), count: 0, properties: new Set() })
-      const entry = map.get(hex)!
+      const key = prop ? `${hex}|${prop}` : hex
+      if (!map.has(key)) map.set(key, { rawForms: new Set(), count: 0, properties: new Set(), hex, property: prop })
+      const entry = map.get(key)!
       entry.rawForms.add(raw)
       entry.count++
       if (prop) entry.properties.add(prop)
@@ -149,7 +152,8 @@ export function extractColors(html: string): DetectedColor[] {
   }
 
   const results: DetectedColor[] = []
-  map.forEach((entry, hex) => {
+  map.forEach((entry) => {
+    const { hex, property } = entry
     const properties = Array.from(entry.properties)
     const r = parseInt(hex.slice(1, 3), 16)
     const g = parseInt(hex.slice(3, 5), 16)
@@ -158,7 +162,6 @@ export function extractColors(html: string): DetectedColor[] {
     const isNeutral = lightness < 30 || lightness > 220
     const role = classifyRole(properties, hex, entry.count)
 
-    // Build a descriptive label: role name + primary CSS usage in Polish
     const propDescriptions = properties
       .map((p) => PROP_PL[p] ?? null)
       .filter((v): v is string => v !== null)
@@ -170,6 +173,7 @@ export function extractColors(html: string): DetectedColor[] {
 
     results.push({
       hex,
+      primaryProperty: property || undefined,
       rawForms: Array.from(entry.rawForms),
       count: entry.count,
       properties,
@@ -179,7 +183,6 @@ export function extractColors(html: string): DetectedColor[] {
     })
   })
 
-  // Sort: by role priority then by count desc
   const rolePriority: Record<ColorRole, number> = {
     primary: 0, secondary: 1, accent: 2, background: 3, text: 4, border: 5, other: 6,
   }
