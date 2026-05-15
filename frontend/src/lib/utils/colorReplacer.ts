@@ -1,3 +1,17 @@
+// Replace exactly one color occurrence at the given byte position in HTML.
+// Verifies the raw form still matches at that position before replacing.
+// Returns the original html unchanged if the position is no longer valid.
+export function replaceColorAtPosition(
+  html: string,
+  position: number,
+  originalRawForm: string,
+  newColor: string,
+): string {
+  const actual = html.substr(position, originalRawForm.length)
+  if (actual !== originalRawForm) return html
+  return html.slice(0, position) + newColor + html.slice(position + originalRawForm.length)
+}
+
 export function replaceColorInHtml(html: string, rawForms: string[], newColor: string): string {
   let result = html
   for (const raw of rawForms) {

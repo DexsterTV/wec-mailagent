@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
-import { extractColors, PROP_PL } from '../../lib/utils/colorExtractor'
-import { replaceColorInHtml } from '../../lib/utils/colorReplacer'
+import { useState, useEffect, useMemo } from 'react'
+import { extractColorsPerOccurrence, PROP_PL } from '../../lib/utils/colorExtractor'
+import { replaceColorAtPosition } from '../../lib/utils/colorReplacer'
 import type { DetectedColor } from '../../types'
 
 interface ColorEditorProps {
@@ -10,39 +10,37 @@ interface ColorEditorProps {
 }
 
 export default function ColorEditor({ html, colorMappings, onChange }: ColorEditorProps) {
-  const [colors, setColors] = useState<DetectedColor[]>(colorMappings)
+  // Re-extract from current HTML whenever it changes so positions stay accurate.
+  // colorMappings prop is only used as a "has been scanned" indicator.
   const [scanned, setScanned] = useState(colorMappings.length > 0)
+  const colors = useMemo(() => (scanned ? extractColorsPerOccurrence(html) : []), [html, scanned])
 
   useEffect(() => {
-    setColors(colorMappings)
     setScanned(colorMappings.length > 0)
   }, [colorMappings])
 
   function handleScan() {
-    const detected = extractColors(html)
+    const detected = extractColorsPerOccurrence(html)
     if (detected.length === 0) {
       alert('Nie znaleziono żadnych kolorów w kodzie HTML szablonu.')
       return
     }
-    setColors(detected)
     setScanned(true)
     onChange(html, detected)
   }
 
-  function handleColorChange(index: number, newHex: string) {
-    const color = colors[index]
-    const newHtml = replaceColorInHtml(html, color.rawForms, newHex)
-    const updatedColors = colors.map((c, i) =>
-      i === index ? { ...c, hex: newHex, rawForms: [newHex] } : c
-    )
-    setColors(updatedColors)
-    onChange(newHtml, updatedColors)
+  function handleColorChange(c: DetectedColor, newHex: string) {
+    if (c.position === undefined || c.rawForm === undefined) return
+    const newHtml = replaceColorAtPosition(html, c.position, c.rawForm, newHex)
+    if (newHtml === html) return // position no longer valid
+    const fresh = extractColorsPerOccurrence(newHtml)
+    onChange(newHtml, fresh)
   }
 
-  function handleHexInput(index: number, value: string) {
+  function handleHexInput(c: DetectedColor, value: string) {
     const normalized = value.startsWith('#') ? value : `#${value}`
     if (/^#[0-9a-fA-F]{6}$/.test(normalized)) {
-      handleColorChange(index, normalized.toLowerCase())
+      handleColorChange(c, normalized.toLowerCase())
     }
   }
 
@@ -59,140 +57,178 @@ export default function ColorEditor({ html, colorMappings, onChange }: ColorEdit
     )
   }
 
-  const grouped = colors.reduce<Record<string, DetectedColor[]>>((acc, c) => {
-    const key = c.label
-    if (!acc[key]) acc[key] = []
-    acc[key].push(c)
-    return acc
-  }, {})
+  // Number occurrences within (hex|primaryProperty) groups so duplicates are distinguishable.
+  const groupCounters = new Map<string, { current: number; total: number }>()
+  colors.forEach((c) => {
+    const k = `${c.hex}|${c.primaryProperty ?? ''}`
+    const entry = groupCounters.get(k) ?? { current: 0, total: 0 }
+    entry.total++
+    groupCounters.set(k, entry)
+  })
+
+  // Group rows by CSS property (e.g. all "background-color" together, all "border-color" together)
+  // while keeping each occurrence as its own row.
+  const PROP_ORDER = [
+    'background-color', 'background',
+    'color',
+    'border-color', 'border', 'border-top', 'border-right', 'border-bottom', 'border-left',
+    'outline', 'box-shadow', 'fill', 'stroke', 'text-decoration-color', 'caret-color',
+  ]
+  const grouped = new Map<string, DetectedColor[]>()
+  for (const c of colors) {
+    const key = c.primaryProperty ?? ''
+    if (!grouped.has(key)) grouped.set(key, [])
+    grouped.get(key)!.push(c)
+  }
+  const sortedGroups = Array.from(grouped.entries()).sort(([a], [b]) => {
+    const ia = PROP_ORDER.indexOf(a)
+    const ib = PROP_ORDER.indexOf(b)
+    const aRank = ia === -1 ? 999 : ia
+    const bRank = ib === -1 ? 999 : ib
+    return aRank - bRank || a.localeCompare(b)
+  })
 
   return (
     <div style={{ padding: '16px 0' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-          Znaleziono {colors.length} kolorów
+          {colors.length} {colors.length === 1 ? 'wystąpienie' : 'wystąpień'}
         </span>
         <button className="btn btn-secondary btn-sm" onClick={handleScan}>
           Skanuj ponownie
         </button>
       </div>
 
-      {Object.entries(grouped).map(([groupLabel, groupColors]) => (
-        <div key={groupLabel} style={{ marginBottom: 20 }}>
-          <div style={{
-            fontSize: '0.75rem',
-            fontWeight: 600,
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            color: 'var(--text-muted)',
-            marginBottom: 8,
-            paddingBottom: 4,
-            borderBottom: '1px solid var(--panel-border)',
-          }}>
-            {groupLabel}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {groupColors.map((color) => {
-              const globalIndex = colors.indexOf(color)
-              return (
-                <ColorRow
-                  key={color.hex + globalIndex}
-                  color={color}
-                  onColorChange={(newHex) => handleColorChange(globalIndex, newHex)}
-                  onHexInput={(val) => handleHexInput(globalIndex, val)}
-                />
-              )
-            })}
-          </div>
-        </div>
-      ))}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        {sortedGroups.map(([prop, groupColors]) => {
+          const groupLabel = prop ? (PROP_PL[prop] ?? prop) : 'inne'
+          return (
+            <div key={prop || 'other'}>
+              <div style={{
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                textTransform: 'uppercase',
+                letterSpacing: '0.06em',
+                color: 'var(--text-muted)',
+                marginBottom: 6,
+                paddingBottom: 4,
+                borderBottom: '1px solid var(--panel-border)',
+                display: 'flex',
+                justifyContent: 'space-between',
+              }}>
+                <span>{groupLabel}</span>
+                <span style={{ fontWeight: 500 }}>{groupColors.length}</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {groupColors.map((color) => {
+                  const k = `${color.hex}|${color.primaryProperty ?? ''}`
+                  const ctr = groupCounters.get(k)!
+                  ctr.current++
+                  const rank = ctr.current
+                  return (
+                    <ColorRow
+                      key={color.position}
+                      color={color}
+                      rank={rank}
+                      total={ctr.total}
+                      onColorChange={(newHex) => handleColorChange(color, newHex)}
+                      onHexInput={(val) => handleHexInput(color, val)}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
 
 interface ColorRowProps {
   color: DetectedColor
+  rank: number
+  total: number
   onColorChange: (hex: string) => void
   onHexInput: (value: string) => void
 }
 
-function ColorRow({ color, onColorChange, onHexInput }: ColorRowProps) {
+function ColorRow({ color, rank, total, onColorChange, onHexInput }: ColorRowProps) {
   const [hexInput, setHexInput] = useState(color.hex)
 
   useEffect(() => {
     setHexInput(color.hex)
   }, [color.hex])
 
+  const roleLabel = color.label.split(' — ')[0]
+
   return (
     <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: 10,
-      padding: '6px 8px',
       borderRadius: 6,
       background: 'var(--bg-100)',
       border: '1px solid var(--panel-border)',
+      overflow: 'hidden',
     }}>
-      {/* Color swatch + native picker */}
-      <label style={{ position: 'relative', cursor: 'pointer', flexShrink: 0 }}>
-        <div style={{
-          width: 32,
-          height: 32,
-          borderRadius: 6,
-          background: color.hex,
-          border: '2px solid var(--panel-border)',
-          boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.1)',
-        }} />
-        <input
-          type="color"
-          value={color.hex}
-          onChange={(e) => onColorChange(e.target.value)}
-          style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }}
-          tabIndex={-1}
-        />
-      </label>
-
-      {/* Hex text input */}
-      <input
-        type="text"
-        value={hexInput}
-        onChange={(e) => {
-          setHexInput(e.target.value)
-          onHexInput(e.target.value)
-        }}
-        onBlur={() => setHexInput(color.hex)}
-        style={{
-          width: 80,
-          fontFamily: 'Consolas, monospace',
-          fontSize: 12,
-          padding: '4px 6px',
-          border: '1px solid var(--panel-border)',
-          borderRadius: 4,
-          background: 'var(--bg-0)',
-          color: 'var(--text-900)',
-        }}
-        maxLength={9}
-      />
-
-      {/* Properties — shown as Polish labels, deduplicated */}
-      <div style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-        {Array.from(new Set(color.properties.map((p) => PROP_PL[p] ?? p))).slice(0, 3).map((label) => (
-          <span key={label} style={{
-            fontSize: 10,
-            padding: '2px 6px',
-            borderRadius: 10,
-            background: 'var(--panel-border)',
-            color: 'var(--text-500)',
-          }}>
-            {label}
+      {/* Label row */}
+      <div style={{
+        fontSize: 10,
+        color: 'var(--text-400)',
+        padding: '4px 8px',
+        borderBottom: '1px solid var(--panel-border)',
+        background: 'var(--panel-bg)',
+        display: 'flex',
+        justifyContent: 'space-between',
+        gap: 8,
+      }}>
+        <span>{roleLabel}</span>
+        {total > 1 && (
+          <span style={{ fontWeight: 600, color: 'var(--text-500)' }}>
+            #{rank} z {total}
           </span>
-        ))}
+        )}
       </div>
 
-      {/* Usage count */}
-      <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>
-        ×{color.count}
-      </span>
+      {/* Controls row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 8px' }}>
+        <label style={{ position: 'relative', cursor: 'pointer', flexShrink: 0 }}>
+          <div style={{
+            width: 28,
+            height: 28,
+            borderRadius: 5,
+            background: color.hex,
+            border: '2px solid var(--panel-border)',
+            boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.1)',
+          }} />
+          <input
+            type="color"
+            value={color.hex}
+            onChange={(e) => onColorChange(e.target.value)}
+            style={{ position: 'absolute', opacity: 0, width: 0, height: 0, pointerEvents: 'none' }}
+            tabIndex={-1}
+          />
+        </label>
+
+        <input
+          type="text"
+          value={hexInput}
+          onChange={(e) => {
+            setHexInput(e.target.value)
+            onHexInput(e.target.value)
+          }}
+          onBlur={() => setHexInput(color.hex)}
+          style={{
+            flex: 1,
+            fontFamily: 'Consolas, monospace',
+            fontSize: 12,
+            padding: '4px 6px',
+            border: '1px solid var(--panel-border)',
+            borderRadius: 4,
+            background: 'var(--bg-0)',
+            color: 'var(--text-900)',
+          }}
+          maxLength={9}
+        />
+      </div>
     </div>
   )
 }

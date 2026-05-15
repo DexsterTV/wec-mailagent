@@ -43,6 +43,9 @@ export interface DetectedColor {
   role: ColorRole
   label: string
   isNeutral: boolean
+  // Per-occurrence fields (only set when extracted with extractColorsPerOccurrence):
+  position?: number   // absolute byte offset in HTML where this color value starts
+  rawForm?: string    // exact raw string at that position (e.g. "#FF0000" or "rgb(255,0,0)")
 }
 
 export interface DetectedFont {

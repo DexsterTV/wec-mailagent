@@ -190,3 +190,74 @@ export function extractColors(html: string): DetectedColor[] {
 
   return results
 }
+
+// Build a single DetectedColor record for one occurrence at a known position.
+function buildEntry(raw: string, hex: string, prop: string, position: number): DetectedColor {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  const lightness = (r * 299 + g * 587 + b * 114) / 1000
+  const isNeutral = lightness < 30 || lightness > 220
+  const role = classifyRole(prop ? [prop] : [], hex, 1)
+
+  const propDesc = prop ? (PROP_PL[prop] ?? null) : null
+  const label = propDesc ? `${ROLE_LABELS[role]} — ${propDesc}` : ROLE_LABELS[role]
+
+  return {
+    hex,
+    primaryProperty: prop || undefined,
+    rawForms: [raw],
+    count: 1,
+    properties: prop ? [prop] : [],
+    role,
+    label,
+    isNeutral,
+    position,
+    rawForm: raw,
+  }
+}
+
+// Emit ONE DetectedColor per actual occurrence in the HTML, with absolute position.
+// This lets each occurrence be edited independently even when hex and property are identical.
+export function extractColorsPerOccurrence(html: string): DetectedColor[] {
+  const results: DetectedColor[] = []
+
+  function processContent(content: string, baseOffset: number) {
+    const pattern = new RegExp(COLOR_PATTERN.source, 'gi')
+    let m: RegExpExecArray | null
+    while ((m = pattern.exec(content)) !== null) {
+      const raw = m[0]
+      const hex = normalizeToHex(raw)
+      if (!hex) continue
+
+      const before = content.slice(Math.max(0, m.index - 60), m.index)
+      const propMatch = before.match(/([\w-]+)\s*:\s*[^;]*$/)
+      const prop = propMatch ? propMatch[1].toLowerCase() : ''
+
+      results.push(buildEntry(raw, hex, prop, baseOffset + m.index))
+    }
+  }
+
+  // Inline style attributes. Use simple quote class (matches old extractColors behavior)
+  // and compute contentStart from position of first quote in the match.
+  const inlineStyle = /style\s*=\s*["']([^"']+)["']/gi
+  let m: RegExpExecArray | null
+  while ((m = inlineStyle.exec(html)) !== null) {
+    const content = m[1]
+    const quoteOffset = m[0].search(/["']/)
+    if (quoteOffset === -1) continue
+    const contentStart = m.index + quoteOffset + 1
+    processContent(content, contentStart)
+  }
+
+  // <style> blocks
+  const styleBlock = /<style[^>]*>([\s\S]*?)<\/style>/gi
+  while ((m = styleBlock.exec(html)) !== null) {
+    const fullMatch = m[0]
+    const content = m[1]
+    const contentStart = m.index + fullMatch.indexOf('>') + 1
+    processContent(content, contentStart)
+  }
+
+  return results.sort((a, b) => (a.position ?? 0) - (b.position ?? 0))
+}
