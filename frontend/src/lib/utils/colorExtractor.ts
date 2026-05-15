@@ -217,8 +217,11 @@ function buildEntry(raw: string, hex: string, prop: string, position: number): D
   }
 }
 
-// Emit ONE DetectedColor per actual occurrence in the HTML, with absolute position.
-// This lets each occurrence be edited independently even when hex and property are identical.
+// Emit ONE DetectedColor per actual occurrence in inline style attributes ONLY.
+// Reason: inline styles always win over <style> block rules (higher CSS specificity)
+// and most email clients (Gmail, Outlook) strip <style> blocks entirely. Showing
+// <style> block colors here would let users "edit" colors that have no visible
+// effect on the rendered email — confusing and useless.
 export function extractColorsPerOccurrence(html: string): DetectedColor[] {
   const results: DetectedColor[] = []
 
@@ -238,8 +241,6 @@ export function extractColorsPerOccurrence(html: string): DetectedColor[] {
     }
   }
 
-  // Inline style attributes. Use simple quote class (matches old extractColors behavior)
-  // and compute contentStart from position of first quote in the match.
   const inlineStyle = /style\s*=\s*["']([^"']+)["']/gi
   let m: RegExpExecArray | null
   while ((m = inlineStyle.exec(html)) !== null) {
@@ -247,15 +248,6 @@ export function extractColorsPerOccurrence(html: string): DetectedColor[] {
     const quoteOffset = m[0].search(/["']/)
     if (quoteOffset === -1) continue
     const contentStart = m.index + quoteOffset + 1
-    processContent(content, contentStart)
-  }
-
-  // <style> blocks
-  const styleBlock = /<style[^>]*>([\s\S]*?)<\/style>/gi
-  while ((m = styleBlock.exec(html)) !== null) {
-    const fullMatch = m[0]
-    const content = m[1]
-    const contentStart = m.index + fullMatch.indexOf('>') + 1
     processContent(content, contentStart)
   }
 

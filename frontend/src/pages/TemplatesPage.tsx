@@ -78,7 +78,8 @@ function EditorPanel({ template, onSave, onCancel }: EditorPanelProps) {
   const editingId = template?.id ?? null
   const groupedFields = groupFieldsBySection(fields)
 
-  // Update appearance preview whenever html or fields change
+  // Update appearance preview whenever html or fields change.
+  // Same imperative doc.write pattern as EditorPage — proven reliable.
   useEffect(() => {
     if (activeTab !== 'appearance') return
     const frame = previewRef.current
@@ -86,18 +87,12 @@ function EditorPanel({ template, onSave, onCancel }: EditorPanelProps) {
     const doc = frame.contentDocument || frame.contentWindow?.document
     if (!doc) return
 
-    // Substitute field default values so preview shows real content, not {{placeholders}}
     const defaults: Record<string, string> = {}
     fields.forEach((f) => { defaults[f.id] = f.default !== undefined ? String(f.default) : '' })
     const rendered = renderTemplate(html, defaults, {})
 
-    const csp = `<meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; img-src * data: blob:;">`
-    const safe = /<head[^>]*>/i.test(rendered)
-      ? rendered.replace(/(<head[^>]*>)/i, `$1\n${csp}`)
-      : csp + rendered
-
     doc.open()
-    doc.write(safe)
+    doc.write(rendered)
     doc.close()
   }, [html, activeTab, fields])
 
