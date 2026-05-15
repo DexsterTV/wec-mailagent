@@ -138,11 +138,12 @@ export function extractColors(html: string): DetectedColor[] {
     }
   }
 
-  // Scan inline style attributes
-  const inlineStyle = /style\s*=\s*["']([^"']+)["']/gi
+  // Scan inline style attributes. Backreference \1 lets internal opposite-quote
+  // characters (e.g. font-family:'Times New Roman' inside style="...") survive.
+  const inlineStyle = /style\s*=\s*("|')((?:(?!\1).)*)\1/gi
   let m: RegExpExecArray | null
   while ((m = inlineStyle.exec(html)) !== null) {
-    processStyleValue(m[1])
+    processStyleValue(m[2])
   }
 
   // Scan <style> blocks
@@ -241,11 +242,14 @@ export function extractColorsPerOccurrence(html: string): DetectedColor[] {
     }
   }
 
-  const inlineStyle = /style\s*=\s*["']([^"']+)["']/gi
+  // Backreference \1 keeps closing quote matching the opening one, so internal
+  // opposite-quote chars (e.g. font-family:'Times New Roman' inside style="...") don't truncate.
+  const inlineStyle = /style\s*=\s*("|')((?:(?!\1).)*)\1/gi
   let m: RegExpExecArray | null
   while ((m = inlineStyle.exec(html)) !== null) {
-    const content = m[1]
-    const quoteOffset = m[0].search(/["']/)
+    const quote = m[1]
+    const content = m[2]
+    const quoteOffset = m[0].indexOf(quote)
     if (quoteOffset === -1) continue
     const contentStart = m.index + quoteOffset + 1
     processContent(content, contentStart)

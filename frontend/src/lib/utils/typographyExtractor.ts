@@ -29,9 +29,11 @@ function processStyleText(
 export function extractTypography(html: string): DetectedTypographyValue[] {
   const map = new Map<string, { rawForms: Set<string>; count: number; property: string }>()
 
-  const inlineStyle = /style\s*=\s*["']([^"']+)["']/gi
+  // Backreference \1 keeps closing quote matching opening one — internal opposite
+  // quotes (e.g. 'Times New Roman' inside style="...") no longer truncate the match.
+  const inlineStyle = /style\s*=\s*("|')((?:(?!\1).)*)\1/gi
   let m: RegExpExecArray | null
-  while ((m = inlineStyle.exec(html)) !== null) processStyleText(m[1], map)
+  while ((m = inlineStyle.exec(html)) !== null) processStyleText(m[2], map)
 
   const styleBlock = /<style[^>]*>([\s\S]*?)<\/style>/gi
   while ((m = styleBlock.exec(html)) !== null) processStyleText(m[1], map)

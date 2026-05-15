@@ -29,11 +29,12 @@ function processStyleText(text: string, map: Map<string, { rawForms: Set<string>
 export function extractFonts(html: string): DetectedFont[] {
   const map = new Map<string, { rawForms: Set<string>; count: number }>()
 
-  // Inline style attributes
-  const inlineStyle = /style\s*=\s*["']([^"']+)["']/gi
+  // Inline style attributes. Backreference \1 keeps closing quote matching the
+  // opening one so internal opposite-quote chars (e.g. 'Times New Roman') don't truncate.
+  const inlineStyle = /style\s*=\s*("|')((?:(?!\1).)*)\1/gi
   let m: RegExpExecArray | null
   while ((m = inlineStyle.exec(html)) !== null) {
-    processStyleText(m[1], map)
+    processStyleText(m[2], map)
   }
 
   // <style> blocks
