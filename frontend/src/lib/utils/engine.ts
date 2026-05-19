@@ -45,7 +45,14 @@ export function renderTemplate(
     let val: unknown = values[fieldName]
     if (val === undefined || val === null) val = ''
     if (typeof val === 'string') {
+      // Escape everything to prevent XSS, then whitelist safe inline formatting tags.
+      // This keeps <script>, <iframe>, attribute injection etc. escaped while letting
+      // users format text with the toolbar buttons (B/I/U/S) and line breaks.
       val = val.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      val = (val as string).replace(
+        /&lt;(\/?)(strong|em|u|s|b|i|br)(\s*\/?)&gt;/gi,
+        '<$1$2$3>',
+      )
       val = (val as string).replace(/\n/g, '<br>')
     }
     return String(val)
