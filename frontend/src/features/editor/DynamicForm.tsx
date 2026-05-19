@@ -156,6 +156,12 @@ function FieldRow({
     return (
       <div className="form-group">
         <label htmlFor={id}>{field.label}</label>
+        <FormatToolbar
+          targetId={id}
+          value={value}
+          onChange={(v) => onChange(field.id, v)}
+          disabled={!!field.locked}
+        />
         <textarea
           id={id}
           name={field.id}
@@ -271,6 +277,14 @@ function FieldRow({
   return (
     <div className="form-group">
       <label htmlFor={id}>{field.label}</label>
+      {!isImg && (
+        <FormatToolbar
+          targetId={id}
+          value={value}
+          onChange={(v) => onChange(field.id, v)}
+          disabled={!!field.locked}
+        />
+      )}
       <input
         type="text"
         id={id}
@@ -280,6 +294,62 @@ function FieldRow({
         style={field.locked ? { backgroundColor: 'rgba(0,0,0,0.04)', cursor: 'not-allowed' } : isImg ? { borderLeft: '3px solid var(--primary)' } : undefined}
         onChange={(e) => onChange(field.id, e.target.value)}
       />
+    </div>
+  )
+}
+
+interface FormatToolbarProps {
+  targetId: string
+  value: string
+  onChange: (newValue: string) => void
+  disabled?: boolean
+}
+
+function FormatToolbar({ targetId, value, onChange, disabled }: FormatToolbarProps) {
+  function wrap(tag: string) {
+    const el = document.getElementById(targetId) as HTMLInputElement | HTMLTextAreaElement | null
+    if (!el) {
+      // No element — append empty tag pair at end as a fallback
+      onChange(`${value}<${tag}></${tag}>`)
+      return
+    }
+    const start = el.selectionStart ?? value.length
+    const end = el.selectionEnd ?? value.length
+    const selected = value.slice(start, end)
+    const before = value.slice(0, start)
+    const after = value.slice(end)
+    const newValue = `${before}<${tag}>${selected}</${tag}>${after}`
+    onChange(newValue)
+    // Restore focus + place cursor between the new tags (or keep the wrapped selection highlighted)
+    requestAnimationFrame(() => {
+      el.focus()
+      const innerStart = before.length + tag.length + 2 // length of `<tag>`
+      const innerEnd = innerStart + selected.length
+      el.setSelectionRange(innerStart, innerEnd)
+    })
+  }
+
+  const btnStyle: React.CSSProperties = {
+    width: 28,
+    height: 26,
+    padding: 0,
+    border: '1px solid var(--panel-border)',
+    background: 'var(--bg-0)',
+    borderRadius: 4,
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    color: 'var(--text-700)',
+    fontSize: 13,
+    lineHeight: 1,
+    fontFamily: 'inherit',
+    opacity: disabled ? 0.5 : 1,
+  }
+
+  return (
+    <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
+      <button type="button" disabled={disabled} title="Pogrubienie (Bold)" onClick={() => wrap('strong')} style={{ ...btnStyle, fontWeight: 700 }}>B</button>
+      <button type="button" disabled={disabled} title="Kursywa (Italic)" onClick={() => wrap('em')} style={{ ...btnStyle, fontStyle: 'italic' }}>I</button>
+      <button type="button" disabled={disabled} title="Podkreślenie (Underline)" onClick={() => wrap('u')} style={{ ...btnStyle, textDecoration: 'underline' }}>U</button>
+      <button type="button" disabled={disabled} title="Przekreślenie (Strikethrough)" onClick={() => wrap('s')} style={{ ...btnStyle, textDecoration: 'line-through' }}>S</button>
     </div>
   )
 }
