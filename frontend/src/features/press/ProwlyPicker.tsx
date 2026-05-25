@@ -298,7 +298,7 @@ export default function ProwlyPicker({ pressMappings, onSelect }: ProwlyPickerPr
       {/* List */}
       {(activePosts.length > 0 || showEmptyHint) && (
         <div style={{
-          maxHeight: 320, overflowY: 'auto',
+          maxHeight: 480, overflowY: 'auto',
           border: '1px solid var(--panel-border)', borderRadius: 10,
           background: 'var(--workspace-bg)',
         }}>

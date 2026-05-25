@@ -222,7 +222,25 @@ function makeProwlyRouter(middleware) {
     try {
       const xml   = await fetchText(rssUrl)
       const all   = parseItems(xml, 0)
-      const hits  = all.filter((item) => item.title.toLowerCase().includes(q)).slice(0, 12)
+
+      // Score-based fuzzy match: exact phrase scores highest, individual word matches add up.
+      // This way "rugone promo" finds "RugOne z promocjami w maju" even though the phrase
+      // doesn't appear verbatim.
+      const words = q.split(/\s+/).filter((w) => w.length >= 2)
+      const scored = all
+        .map((item) => {
+          const title = item.title.toLowerCase()
+          let score = 0
+          if (title.includes(q)) score += 100
+          for (const w of words) {
+            if (title.includes(w)) score += 10
+          }
+          return { item, score }
+        })
+        .filter((x) => x.score > 0)
+        .sort((a, b) => b.score - a.score)
+
+      const hits = scored.slice(0, 20).map((x) => x.item)
       hits.forEach((item) => { delete item._needsFetch })
       res.json(hits)
     } catch (err) {
