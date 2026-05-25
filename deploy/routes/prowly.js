@@ -223,9 +223,10 @@ function makeProwlyRouter(middleware) {
       const xml   = await fetchText(rssUrl)
       const all   = parseItems(xml, 0)
 
-      // Score-based fuzzy match: exact phrase scores highest, individual word matches add up.
-      // This way "rugone promo" finds "RugOne z promocjami w maju" even though the phrase
-      // doesn't appear verbatim.
+      // Score-based fuzzy match with Polish-friendly prefix matching.
+      // - Full phrase match: +100
+      // - Word match: +10
+      // - Stem match (first 4-5 chars): +3 — handles "promocje" vs "promocjami" etc.
       const words = q.split(/\s+/).filter((w) => w.length >= 2)
       const scored = all
         .map((item) => {
@@ -233,7 +234,12 @@ function makeProwlyRouter(middleware) {
           let score = 0
           if (title.includes(q)) score += 100
           for (const w of words) {
-            if (title.includes(w)) score += 10
+            if (title.includes(w)) {
+              score += 10
+            } else if (w.length >= 4) {
+              const stem = w.slice(0, Math.min(w.length, 5))
+              if (title.includes(stem)) score += 3
+            }
           }
           return { item, score }
         })
