@@ -228,35 +228,25 @@ function makeProwlyRouter(middleware) {
       // - Word match: +10
       // - Stem match (first 4-5 chars): +3 — handles "promocje" vs "promocjami" etc.
       const words = q.split(/\s+/).filter((w) => w.length >= 2)
-      const matched = []
-      const unmatched = []
-
-      for (const item of all) {
-        const title = item.title.toLowerCase()
-        let score = 0
-        if (title.includes(q)) score += 100
-        for (const w of words) {
-          if (title.includes(w)) {
-            score += 10
-          } else if (w.length >= 4) {
-            const stem = w.slice(0, Math.min(w.length, 5))
-            if (title.includes(stem)) score += 3
+      const scored = all
+        .map((item) => {
+          const title = item.title.toLowerCase()
+          let score = 0
+          if (title.includes(q)) score += 100
+          for (const w of words) {
+            if (title.includes(w)) {
+              score += 10
+            } else if (w.length >= 4) {
+              const stem = w.slice(0, Math.min(w.length, 5))
+              if (title.includes(stem)) score += 3
+            }
           }
-        }
-        if (score > 0) matched.push({ item, score })
-        else unmatched.push(item)
-      }
+          return { item, score }
+        })
+        .filter((x) => x.score > 0)
+        .sort((a, b) => b.score - a.score)
 
-      matched.sort((a, b) => b.score - a.score)
-      let hits = matched.slice(0, 20).map((x) => x.item)
-
-      // Always show at least 5 suggestions — pad with most-recent unmatched items
-      // (RSS order is typically newest first) so the user always has alternatives.
-      const MIN_RESULTS = 5
-      if (hits.length < MIN_RESULTS) {
-        hits = hits.concat(unmatched.slice(0, MIN_RESULTS - hits.length))
-      }
-
+      const hits = scored.slice(0, 20).map((x) => x.item)
       hits.forEach((item) => { delete item._needsFetch })
       res.json(hits)
     } catch (err) {
