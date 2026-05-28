@@ -183,6 +183,18 @@ export type LogAction =
   | 'USER_ADD'
   | 'USER_EDIT'
   | 'USER_DELETE'
+  | 'WSP_BRAND_ADD'
+  | 'WSP_BRAND_EDIT'
+  | 'WSP_OUTLET_ADD'
+  | 'WSP_OUTLET_EDIT'
+  | 'WSP_TYPE_ADD'
+  | 'WSP_TYPE_EDIT'
+  | 'WSP_PRICE_ADD'
+  | 'WSP_PRICE_UPDATE'
+  | 'WSP_PRICE_DELETE'
+  | 'WSP_COLLAB_ADD'
+  | 'WSP_COLLAB_EDIT'
+  | 'WSP_CSV_EXPORT'
   | string
 
 export interface LogEntry {

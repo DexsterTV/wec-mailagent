@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { formatPln, formatPlnWithType } from '../../lib/utils/money'
+import { logsApi } from '../../lib/api/logs'
 import type {
   Brand, Outlet, CollaborationType, Collaboration,
   CollaborationStatus, PriceType,
@@ -105,6 +106,7 @@ export default function SummaryTab({ brands, outlets, types, collaborations }: P
     a.download = `wspolprace_${new Date().toISOString().slice(0, 10)}.csv`
     a.click()
     URL.revokeObjectURL(a.href)
+    logsApi.add('WSP_CSV_EXPORT', `Eksport CSV ${filtered.length} współprac`)
   }
 
   const inputStyle: React.CSSProperties = {

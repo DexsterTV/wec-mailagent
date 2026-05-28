@@ -2,6 +2,7 @@
 
 const express = require('express')
 const { readData, writeData } = require('./storage')
+const { addServerLog } = require('./logs')
 
 const COLLABORATION_STATUSES = ['PLANOWANA', 'ZREALIZOWANA', 'ANULOWANA']
 const PRICE_TYPES = ['NETTO', 'BRUTTO']
@@ -21,6 +22,27 @@ const DEFAULT_TYPES = [
 
 function uid(prefix) {
   return `${prefix}_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`
+}
+
+// Build human-friendly label for a collaboration: "Marka × Redakcja (Rodzaj)"
+function describeCollab(c) {
+  const brands = readData('brands.json', [])
+  const outlets = readData('outlets.json', [])
+  const types = readData('collaboration_types.json', [])
+  const b = brands.find((x) => x.id === c.brandId)?.name ?? '?'
+  const o = outlets.find((x) => x.id === c.outletId)?.name ?? '?'
+  const t = types.find((x) => x.id === c.collaborationTypeId)?.name ?? '?'
+  const zl = (c.priceGrosze / 100).toFixed(2).replace('.', ',')
+  return `${b} × ${o} (${t}) — ${zl} zł ${c.priceType === 'BRUTTO' ? 'brutto' : 'netto'}`
+}
+
+function describePriceEntry(p) {
+  const outlets = readData('outlets.json', [])
+  const types = readData('collaboration_types.json', [])
+  const o = outlets.find((x) => x.id === p.outletId)?.name ?? '?'
+  const t = types.find((x) => x.id === p.collaborationTypeId)?.name ?? '?'
+  const zl = (p.priceGrosze / 100).toFixed(2).replace('.', ',')
+  return `${o} / ${t} — ${zl} zł ${p.priceType === 'BRUTTO' ? 'brutto' : 'netto'}`
 }
 
 function nowIso() {
@@ -63,6 +85,7 @@ function makeWspolpraceRouter(middleware) {
     const brand = { id: uid('br'), name, active: true, createdAt: nowIso() }
     brands.push(brand)
     writeData('brands.json', brands)
+    addServerLog(req.user.username, 'WSP_BRAND_ADD', `Dodano markę: ${name}`)
     res.json(brand)
   })
 
@@ -71,13 +94,24 @@ function makeWspolpraceRouter(middleware) {
     const idx = brands.findIndex((b) => b.id === req.params.id)
     if (idx < 0) return res.status(404).json({ error: 'Nie znaleziono marki' })
 
+    const oldName = brands[idx].name
+    const oldActive = brands[idx].active
+    const changes = []
+
     if (typeof req.body?.name === 'string') {
       const newName = req.body.name.trim()
       if (!newName) return res.status(400).json({ error: 'Nazwa marki nie może być pusta' })
+      if (newName !== oldName) changes.push(`nazwa: "${oldName}" → "${newName}"`)
       brands[idx].name = newName
     }
-    if (typeof req.body?.active === 'boolean') brands[idx].active = req.body.active
+    if (typeof req.body?.active === 'boolean' && req.body.active !== oldActive) {
+      changes.push(req.body.active ? 'aktywowana' : 'dezaktywowana')
+      brands[idx].active = req.body.active
+    }
     writeData('brands.json', brands)
+    if (changes.length > 0) {
+      addServerLog(req.user.username, 'WSP_BRAND_EDIT', `Marka "${brands[idx].name}": ${changes.join(', ')}`)
+    }
     res.json(brands[idx])
   })
 
@@ -104,6 +138,7 @@ function makeWspolpraceRouter(middleware) {
     }
     outlets.push(outlet)
     writeData('outlets.json', outlets)
+    addServerLog(req.user.username, 'WSP_OUTLET_ADD', `Dodano redakcję: ${name}`)
     res.json(outlet)
   })
 
@@ -112,13 +147,24 @@ function makeWspolpraceRouter(middleware) {
     const idx = outlets.findIndex((o) => o.id === req.params.id)
     if (idx < 0) return res.status(404).json({ error: 'Nie znaleziono redakcji' })
 
+    const oldName = outlets[idx].name
+    const oldActive = outlets[idx].active
+    const changes = []
+
     if (typeof req.body?.name === 'string') {
       const newName = req.body.name.trim()
       if (!newName) return res.status(400).json({ error: 'Nazwa nie może być pusta' })
+      if (newName !== oldName) changes.push(`nazwa: "${oldName}" → "${newName}"`)
       outlets[idx].name = newName
     }
-    if (typeof req.body?.active === 'boolean') outlets[idx].active = req.body.active
+    if (typeof req.body?.active === 'boolean' && req.body.active !== oldActive) {
+      changes.push(req.body.active ? 'aktywowana' : 'dezaktywowana')
+      outlets[idx].active = req.body.active
+    }
     writeData('outlets.json', outlets)
+    if (changes.length > 0) {
+      addServerLog(req.user.username, 'WSP_OUTLET_EDIT', `Redakcja "${outlets[idx].name}": ${changes.join(', ')}`)
+    }
     res.json(outlets[idx])
   })
 
@@ -141,6 +187,7 @@ function makeWspolpraceRouter(middleware) {
     const type = { id: uid('ct'), name, slug, sortOrder, active: true }
     types.push(type)
     writeData('collaboration_types.json', types)
+    addServerLog(req.user.username, 'WSP_TYPE_ADD', `Dodano rodzaj współpracy: ${name}`)
     res.json(type)
   })
 
@@ -149,10 +196,24 @@ function makeWspolpraceRouter(middleware) {
     const idx = types.findIndex((t) => t.id === req.params.id)
     if (idx < 0) return res.status(404).json({ error: 'Nie znaleziono rodzaju' })
 
-    if (typeof req.body?.name === 'string') types[idx].name = req.body.name.trim()
-    if (typeof req.body?.active === 'boolean') types[idx].active = req.body.active
+    const oldName = types[idx].name
+    const oldActive = types[idx].active
+    const changes = []
+
+    if (typeof req.body?.name === 'string' && req.body.name.trim() !== oldName) {
+      const newName = req.body.name.trim()
+      changes.push(`nazwa: "${oldName}" → "${newName}"`)
+      types[idx].name = newName
+    }
+    if (typeof req.body?.active === 'boolean' && req.body.active !== oldActive) {
+      changes.push(req.body.active ? 'aktywowany' : 'dezaktywowany')
+      types[idx].active = req.body.active
+    }
     if (typeof req.body?.sortOrder === 'number') types[idx].sortOrder = req.body.sortOrder
     writeData('collaboration_types.json', types)
+    if (changes.length > 0) {
+      addServerLog(req.user.username, 'WSP_TYPE_EDIT', `Rodzaj "${types[idx].name}": ${changes.join(', ')}`)
+    }
     res.json(types[idx])
   })
 
@@ -182,7 +243,9 @@ function makeWspolpraceRouter(middleware) {
       (e) => e.outletId === outletId && e.collaborationTypeId === collaborationTypeId,
     )
     const now = nowIso()
-    if (idx >= 0) {
+    const isUpdate = idx >= 0
+    let saved
+    if (isUpdate) {
       entries[idx] = {
         ...entries[idx],
         priceGrosze,
@@ -191,8 +254,9 @@ function makeWspolpraceRouter(middleware) {
         updatedAt: now,
         updatedBy: req.user.username,
       }
+      saved = entries[idx]
     } else {
-      entries.push({
+      saved = {
         id: uid('pl'),
         outletId,
         collaborationTypeId,
@@ -202,17 +266,27 @@ function makeWspolpraceRouter(middleware) {
         createdBy: req.user.username,
         createdAt: now,
         updatedAt: now,
-      })
+      }
+      entries.push(saved)
     }
     writeData('price_list.json', entries)
-    res.json(idx >= 0 ? entries[idx] : entries[entries.length - 1])
+    addServerLog(
+      req.user.username,
+      isUpdate ? 'WSP_PRICE_UPDATE' : 'WSP_PRICE_ADD',
+      `${isUpdate ? 'Zaktualizowano wycenę' : 'Dodano wycenę'}: ${describePriceEntry(saved)}`,
+    )
+    res.json(saved)
   })
 
   router.delete('/price-list/:id', requireAuth, (req, res) => {
     const entries = readData('price_list.json', [])
+    const target = entries.find((e) => e.id === req.params.id)
     const filtered = entries.filter((e) => e.id !== req.params.id)
     if (filtered.length === entries.length) return res.status(404).json({ error: 'Nie znaleziono wpisu' })
     writeData('price_list.json', filtered)
+    if (target) {
+      addServerLog(req.user.username, 'WSP_PRICE_DELETE', `Usunięto wycenę: ${describePriceEntry(target)}`)
+    }
     res.json({ ok: true })
   })
 
@@ -271,6 +345,11 @@ function makeWspolpraceRouter(middleware) {
     }
     collabs.push(collab)
     writeData('collaborations.json', collabs)
+    addServerLog(
+      req.user.username,
+      'WSP_COLLAB_ADD',
+      `Dodano współpracę [${collab.status}]: ${describeCollab(collab)}`,
+    )
     res.json(collab)
   })
 
@@ -282,12 +361,19 @@ function makeWspolpraceRouter(middleware) {
     const v = validateCollabPayload(req.body)
     if (v.error) return res.status(400).json({ error: v.error })
 
+    const oldStatus = collabs[idx].status
     collabs[idx] = {
       ...collabs[idx],
       ...v.data,
       updatedAt: nowIso(),
     }
     writeData('collaborations.json', collabs)
+    const statusChange = oldStatus !== v.data.status ? ` [${oldStatus} → ${v.data.status}]` : ` [${v.data.status}]`
+    addServerLog(
+      req.user.username,
+      'WSP_COLLAB_EDIT',
+      `Edytowano współpracę${statusChange}: ${describeCollab(collabs[idx])}`,
+    )
     res.json(collabs[idx])
   })
 
