@@ -6,6 +6,21 @@ Format oparty na [Keep a Changelog](https://keepachangelog.com/pl/1.0.0/).
 
 ---
 
+## [0.2.5] - 2026-05-28
+
+### Nowe funkcje — moduł „Płatne współprace"
+- Nowy moduł w sidebarze pod sekcją „Praca" — jedno miejsce na cennik redakcji i archiwum pɫatnych wspóɫprac
+- Zakładka **Współprace** — tabela z filtrami (marka, redakcja, rodzaj, status, typ ceny, zakres dat, szukajka) + formularz dodawania/edycji z automatycznym podpowiadaniem ceny z cennika dla pary (redakcja, rodzaj)
+- Zakładka **Cennik** — upsert wycen per (redakcja, rodzaj) z rozróżnieniem netto/brutto i notatkami; ostrzeżenie przy nadpisaniu istniejącej pary
+- Zakładka **Redakcje** — każdy zalogowany użytkownik może dodać/edytować redakcje; dezaktywacja zamiast kasowania
+- Zakładka **Podsumowanie** — karty KPI (liczba współprac, suma netto, suma brutto — sumowane osobno, bez doliczania VAT) + breakdowny per status/marka/redakcja + eksport CSV (separator ;, BOM UTF-8 pod Excel PL)
+- Zakładka **Ustawienia** (tylko Administrator) — zarządzanie słownikami marek i rodzajów współpracy
+- Cena na współpracy jako **snapshot** z momentu zapisu — zmiana cennika nie psuje historii
+- Statusy: PLANOWANA / ZREALIZOWANA / ANULOWANA z walidacją (Zrealizowana wymaga daty realizacji)
+- Wszystkie kwoty przechowywane jako Int w groszach (bez floatów), parsowane z polskiego formatu („1234,56" / „1 234.56")
+
+---
+
 ## [0.2.4] - 2026-05-14
 
 ### Nowe funkcje — zakładka Wygląd w edytorze szablonów

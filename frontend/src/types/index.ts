@@ -96,6 +96,63 @@ export interface Template {
   createdAt?: string
 }
 
+// ── Płatne współprace ──────────────────────────────────────────────────────────
+export type CollaborationStatus = 'PLANOWANA' | 'ZREALIZOWANA' | 'ANULOWANA'
+export type PriceType = 'NETTO' | 'BRUTTO'
+
+export interface Brand {
+  id: string
+  name: string
+  active: boolean
+  createdAt: string
+}
+
+export interface CollaborationType {
+  id: string
+  name: string
+  slug: string
+  sortOrder: number
+  active: boolean
+}
+
+export interface Outlet {
+  id: string
+  name: string
+  active: boolean
+  createdBy?: string
+  createdAt: string
+}
+
+export interface PriceListEntry {
+  id: string
+  outletId: string
+  collaborationTypeId: string
+  priceGrosze: number
+  priceType: PriceType
+  note: string | null
+  createdBy?: string
+  createdAt: string
+  updatedAt: string
+  updatedBy?: string
+}
+
+export interface Collaboration {
+  id: string
+  brandId: string
+  outletId: string
+  collaborationTypeId: string
+  priceGrosze: number       // snapshot ceny w groszach
+  priceType: PriceType
+  status: CollaborationStatus
+  plannedDate: string | null
+  completedDate: string | null
+  link: string | null
+  note: string | null
+  createdBy?: string
+  createdAt: string
+  updatedAt: string
+}
+
 export interface ProwlyPost {
   id: string
   title: string

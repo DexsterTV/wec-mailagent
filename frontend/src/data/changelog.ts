@@ -6,6 +6,23 @@ export interface ChangelogEntry {
 
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    version: '0.2.5',
+    date: '2026-05-28',
+    sections: [
+      {
+        label: 'Nowe funkcje',
+        items: [
+          'Nowy moduł „Płatne współprace" — jedno miejsce na cennik redakcji i archiwum wycen',
+          'Współprace: tabela z filtrami (marka, redakcja, rodzaj, status, typ ceny, zakres dat) + formularz z podpowiadaniem ceny z cennika',
+          'Cennik: upsert wycen per (redakcja, rodzaj) z typem netto/brutto i notatkami',
+          'Redakcje: każdy zalogowany może dodać redakcję; admin zarządza markami i rodzajami w Ustawieniach',
+          'Podsumowanie: karty KPI (liczba, suma netto/brutto osobno) + breakdowny per status/marka/redakcja + eksport CSV',
+          'Status współpracy: PLANOWANA / ZREALIZOWANA / ANULOWANA z walidacją daty realizacji',
+        ],
+      },
+    ],
+  },
+  {
     version: '0.2.4',
     date: '2026-05-14',
     sections: [

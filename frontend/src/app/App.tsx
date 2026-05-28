@@ -11,6 +11,7 @@ import TemplatesPage from '../pages/TemplatesPage'
 import LogsPage from '../pages/LogsPage'
 import UsersPage from '../pages/UsersPage'
 import SettingsPage from '../pages/SettingsPage'
+import WspolpracePage from '../pages/WspolpracePage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuth()
@@ -43,6 +44,7 @@ export default function App() {
         <Route path="logs" element={<LogsPage />} />
         <Route path="users" element={<UsersPage />} />
         <Route path="settings" element={<SettingsPage />} />
+        <Route path="wspolprace" element={<WspolpracePage />} />
       </Route>
       <Route path="*" element={<Navigate to="/editor" replace />} />
     </Routes>

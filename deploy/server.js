@@ -20,6 +20,7 @@ const { makeContactsRouter } = require('./routes/contacts')
 const { makeLogsRouter } = require('./routes/logs')
 const { makeProwlyRouter } = require('./routes/prowly')
 const { makeSettingsRouter } = require('./routes/settings')
+const { makeWspolpraceRouter } = require('./routes/wspolprace')
 
 const middleware = makeMiddleware(sessions)
 
@@ -32,6 +33,7 @@ app.use('/api/contacts', makeContactsRouter(middleware))
 app.use('/api/logs', makeLogsRouter(middleware))
 app.use('/api/prowly', makeProwlyRouter(middleware))
 app.use('/api/settings', makeSettingsRouter(middleware))
+app.use('/api/wspolprace', makeWspolpraceRouter(middleware))
 
 const reactDist = path.join(__dirname, 'dist-frontend')
 

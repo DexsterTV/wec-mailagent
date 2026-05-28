@@ -4,7 +4,7 @@ import { useAuth } from '../lib/auth'
 import { applyTheme, getStoredTheme } from '../lib/utils/theme'
 import { CHANGELOG } from '../data/changelog'
 
-const APP_VERSION = '0.2.4'
+const APP_VERSION = '0.2.5'
 
 const LOGO_URL =
   'https://prowly-prod.s3.eu-west-1.amazonaws.com/uploads/1230/assets/826775/-05f2bd38f27c35001ab1be34eaa18753.png'
@@ -191,6 +191,13 @@ export default function Sidebar() {
               <path d="M16 3.13a4 4 0 0 1 0 7.75" />
             </svg>
             <span className="nav-item-label">Baza PR</span>
+          </NavLink>
+
+          <NavLink to="/wspolprace" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
+            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none">
+              <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+            </svg>
+            <span className="nav-item-label">Płatne współprace</span>
           </NavLink>
 
           <div className="sidebar-section-label">Administracja</div>
